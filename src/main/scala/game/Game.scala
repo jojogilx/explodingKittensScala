@@ -3,7 +3,7 @@ package game
 import card.Cards._
 import card.Deck
 import cats.effect._
-import cats.implicits.catsSyntaxApplicativeId
+import cats.implicits.{catsSyntaxApplicativeId, toTraverseOps}
 import players.Players._
 
 import scala.util.Random
@@ -40,9 +40,23 @@ case class Game(nPlayers: Int) {
 
   } *> IO.println(s"${players(currentPlayerIndex).playerID}'s starting")
 
+
+  private def getPlayersNames: IO[Unit] = {
+    (1 to  nPlayers).toList.foldLeft(IO.unit) { (acc, i) =>
+      acc.flatMap { _ =>
+        for {
+          _ <- IO.print(s"Insert player $i's name $nPlayers>>")
+          name <- IO.readLine.map(_.trim)
+          _ <- joinGame(name)
+        } yield ()
+      }
+    }
+  }
+
   def initialize(): IO[Unit] = {
     for {
       _ <- IO.println("initializing...")
+      _ <- getPlayersNames
       _ = initializeDeck(nPlayers)
       _ <- handCards()
       _ <- setRandomStartingPlayer()
@@ -69,15 +83,6 @@ case class Game(nPlayers: Int) {
     _ <- IO.println(s"Still playing: ${players.toString()}")
   } yield ()
 
-  private def drawCard(): IO[Card] = {
-    drawPile.draw.fold(switchPiles() *> drawCard())({
-      case (deck, card) =>
-        drawPile = deck
-        card.pure[IO]
-    })
-  }
-
-
   private def gameLoop(player: Player): IO[Unit] = {
     val p = for {
       _ <- IO.println(
@@ -87,6 +92,7 @@ case class Game(nPlayers: Int) {
       _          <- IO.println(s"\nYour hand is: \n ${player.handWithIndex()}")
       _          <- askPlayOrPass(player)
       card <- drawCard()
+      _ = discardPile.prepend(card)
       _ <- IO.println(s"${player.playerID} drew a $card") //todo this print only for player
       _ <- card match {
         case ExplodingKitten() =>
@@ -183,6 +189,31 @@ case class Game(nPlayers: Int) {
     discardPile = Deck(List.empty[Card])
   }
 
+   private def drawCard(): IO[Card] = {
+    val draw = drawPile.draw
+
+    draw.fold(switchPiles() *> IO({
+      drawPile.draw.get match {
+        case (deck, card) =>
+          drawPile = deck
+          card
+      }
+    }))({
+      case (deck, card) =>
+        drawPile = deck
+        card.pure[IO]
+    })
+  }
+
+  /*  private def drawCard(): IO[Card] = {
+    drawPile.draw.fold(switchPiles() *> drawCard())({
+      case (deck, card) =>
+        drawPile = deck
+        card.pure[IO]
+    })
+  }
+*/
+
   private def checkWinner(): IO[Option[Player]] = IO.pure {
     players.length match {
       case 1 => Some(players.head)
@@ -194,15 +225,27 @@ case class Game(nPlayers: Int) {
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = {
-    val game = Game(5)
+
     for {
-      _ <- game.joinGame("1")
-      _ <- game.joinGame("2")
-      _ <- game.joinGame("3")
-      _ <- game.joinGame("4")
-      _ <- game.joinGame("5")
+      _ <-IO.println("EXPLODING KITTENS - SCALA EDITION\n\n")
+      num <- getNumberOfPlayers
+      game = Game(num)
       _ <- game.initialize()
     } yield ExitCode.Success
 
   }
+
+  private def getNumberOfPlayers: IO[Int] =
+    for {
+      _ <- IO.print("Please insert number of players (2-5) >>")
+      num <- IO.readLine.flatMap(_.toIntOption match {
+        case Some(x) => x match {
+          case i if (2 to 5) contains i => i.pure[IO]
+
+          case _ => IO.println("Invalid number of players") *> getNumberOfPlayers
+        }
+        case None => IO.println("Invalid input") *> getNumberOfPlayers
+      })
+    } yield num
+
 }

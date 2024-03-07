@@ -74,6 +74,11 @@ object Deck {
       val (before, after) = cards.splitAt(index)
       Deck(before ++ List(card) ++ after)
     }
+
+    def prepend(card: Card): Deck = {
+      Deck(card :: cards)
+    }
+
     def swapTopAndBottom: Deck = {
       val first +: cards :+ last = this.cards
       Deck(last +: cards :+ first)
