@@ -1,9 +1,7 @@
 package card
 
 import card.Cards._
-import utils.Utils.intWithTimes
 
-import scala.::
 import scala.language.reflectiveCalls
 import scala.util.Random
 
@@ -62,14 +60,15 @@ object Deck {
     Deck(drawPile.cards ++ discardPile.cards).shuffled
   }
 
-
 }
   case class Deck(private val cards: List[Card]) {
 
     def shuffled: Deck = Deck(Random.shuffle(cards))
+
     def length: Int = cards.length
 
     def reversed: Deck = Deck(cards.reverse)
+
     def getFirstN(number: Int): (List[Card], List[Card]) = {
       val (before, after) = cards.splitAt(number)
       (before, after)
@@ -80,6 +79,7 @@ object Deck {
       val otherCards = cards.filter(_ != ExplodingKitten())
       Deck(explodingKittens ++ otherCards)
     }
+
     def draw: Option[(Deck, Card)] = cards match {
       case Nil => None
       case card :: newDeck => Some(Deck(newDeck), card)
@@ -99,7 +99,6 @@ object Deck {
       Deck(card :: cards)
     }
 
-
     def swapTopAndBottom: Deck = {
       val first +: cards :+ last = this.cards
       Deck(last +: cards :+ first)
@@ -117,10 +116,4 @@ object Deck {
         ExplodingKitten() :: acc
       })
     }
-
-
-
-
-
-
 }

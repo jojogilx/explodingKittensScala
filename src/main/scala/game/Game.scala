@@ -3,7 +3,7 @@ package game
 import card.Cards._
 import card.Deck
 import cats.effect._
-import cats.implicits.{catsSyntaxApplicativeId, toTraverseOps}
+import cats.implicits._
 import players.Players._
 
 import scala.util.Random
@@ -17,15 +17,13 @@ case class Game(nPlayers: Int) {
 
   private var discardPile: Deck = Deck(List.empty[Card])
 
-  private var attack2X = false
-
   // await players join
   // await start game
   // distribute cards
   // manage turns
   // manage win
 
-  def joinGame(playerID: PlayerID): IO[Unit] = IO.pure {
+  private def joinGame(playerID: PlayerID): IO[Unit] = IO.pure {
     players = players :+ Player(playerID)
     println(s"$playerID joined the game.")
   }
@@ -62,7 +60,7 @@ case class Game(nPlayers: Int) {
   private def nextPlayer(): IO[Player] = IO.pure {
     println(currentPlayerIndex + 1)
 
-    currentPlayerIndex = (currentPlayerIndex + 1) match {
+    currentPlayerIndex = currentPlayerIndex + 1 match {
       case x if (1 until players.length).contains(x) => x
       case _                                         => 0
     }
@@ -85,7 +83,11 @@ case class Game(nPlayers: Int) {
       nextPlayer <- nextPlayer()
     } yield nextPlayer
 
-    p.flatMap(nextPlayer => gameLoop(nextPlayer))
+    checkWinner().flatMap({
+      case Some(player) => IO.println(s"${player.playerID} won the game")
+      case None => p.flatMap(nextPlayer => gameLoop(nextPlayer))
+    })
+
 
   }
   private def playerTurn(player: Player): IO[Unit] = {
@@ -99,7 +101,7 @@ case class Game(nPlayers: Int) {
       playOrPass <- askPlayOrPass(player) // Does player want to play a card?
       cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player)) // Which card?
       playerSkipped <- cardOpt.fold(false.pure[IO])(card => {
-        discardPile.prepend(card)
+        discardPile = discardPile.prepend(card)
         handleCardPlayed(card)
       }) // If card played, does player skip draw?
 
@@ -177,20 +179,23 @@ case class Game(nPlayers: Int) {
         true.pure[IO]
 
       case TargetedAttack2X() => // todo ask for target
-        attack2X = true
         true.pure[IO]
+
       case CatomicBomb() =>
         drawPile = drawPile.withBombsOnTop
         true.pure[IO]
+
       case Bury() =>
         for {
           card <- drawCard()
           _ <- IO.println("Where do you want to bury this card?")
           _ <- buryCard(card)
         } yield true
+
       case Reverse() =>
         drawPile = drawPile.reversed
         false.pure[IO]
+
       case Tacocat() | FeralCat() => false.pure[IO]
 
     }
@@ -256,8 +261,8 @@ case class Game(nPlayers: Int) {
 
   private def switchPiles(): IO[Unit] = IO.pure {
     println("switching piles")
-    drawPile = Deck.initFromDiscardPile(discardPile)
 
+    drawPile = Deck.initFromDiscardPile(discardPile)
     discardPile = Deck(List.empty[Card])
   }
 

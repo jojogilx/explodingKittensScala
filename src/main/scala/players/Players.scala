@@ -16,7 +16,7 @@ object Players {
     }
 
     def tryGetDefuse: Option[Card] =
-      cards.zipWithIndex.find { case (card, i) => card match {
+      cards.zipWithIndex.find { case (card, _) => card match {
         case Defuse() => true
         case _ => false
       }} match {
