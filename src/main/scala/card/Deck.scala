@@ -88,6 +88,7 @@ object Deck {
     def insertAt(index: Int, card: Card): Deck = {
       val (before, after) = cards.splitAt(index)
       Deck(before ++ List(card) ++ after)
+
     }
 
     def prepend(card: Card): Deck = {

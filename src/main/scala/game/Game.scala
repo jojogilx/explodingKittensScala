@@ -17,7 +17,6 @@ case class Game(nPlayers: Int) {
 
   private var discardPile: Deck = Deck(List.empty[Card])
 
-  private var skip     = false
   private var attack2X = false
 
   // await players join
@@ -61,7 +60,14 @@ case class Game(nPlayers: Int) {
     } yield ()
   }
   private def nextPlayer(): IO[Player] = IO.pure {
-    currentPlayerIndex = (currentPlayerIndex + 1) % players.length
+    println(currentPlayerIndex + 1)
+
+    currentPlayerIndex = (currentPlayerIndex + 1) match {
+      case x if (1 until players.length).contains(x) => x
+      case _                                         => 0
+    }
+
+    println(currentPlayerIndex + 1)
     players(currentPlayerIndex)
   }
   private def killPlayer(playerIndex: Int): IO[Unit] =
@@ -90,25 +96,28 @@ case class Game(nPlayers: Int) {
       _ <- IO.println(s"\n${player.playerID}'s turn")
       _ <- IO.println(s"\nYour hand is: \n ${player.handWithIndex()}")
 
-      playOrPass <- askPlayOrPass(player) //Does player want to play a card?
-      cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player)) //Which card?
-      playerSkipped <- cardOpt.fold(false.pure[IO])(card => handleCardPlayed(card)) //If card played, does player skip draw?
+      playOrPass <- askPlayOrPass(player) // Does player want to play a card?
+      cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player)) // Which card?
+      playerSkipped <- cardOpt.fold(false.pure[IO])(card => {
+        discardPile.prepend(card)
+        handleCardPlayed(card)
+      }) // If card played, does player skip draw?
 
+      _ <-
+        if (!playerSkipped) {
+          for {
+            card <- drawCard()
+            _ <- IO.println(s"${player.playerID} drew a $card") // todo this print only for player
+            _ <- card match {
+              case ExplodingKitten() =>
+                IO.println(s"${player.playerID} drew a Exploding Kitten") *> player.tryGetDefuse.fold(
+                  killPlayer(currentPlayerIndex)
+                )(_ => IO.println("Defuse used"))
+              case card => player.drawCard(card).pure[IO]
+            }
+          } yield ()
+        } else IO.unit
 
-      _ <- if (!playerSkipped) {
-        for {
-          card <- drawCard()
-          _ = discardPile.prepend(card)
-          _ <- IO.println(s"${player.playerID} drew a $card") // todo this print only for player
-          _ <- card match {
-            case ExplodingKitten() =>
-              IO.println(s"${player.playerID} drew a Exploding Kitten") *> player.tryGetDefuse.fold(
-                killPlayer(currentPlayerIndex)
-              )(_ => IO.println("Defuse used"))
-            case card => player.drawCard(card).pure[IO]
-          }
-        } yield ()
-      } else IO.unit
     } yield ()
   }
   private def askPlayOrPass(player: Player): IO[Option[Boolean]] =
@@ -138,14 +147,14 @@ case class Game(nPlayers: Int) {
     } yield cardOpt
 
   // option next playerID?
-  private def handleCardPlayed(card: Card): IO[Boolean] = IO.pure {
+  private def handleCardPlayed(card: Card): IO[Boolean] = {
     // todo: dont allow: play a defuse or a nope (on first card)
     card match {
       case Shuffle() =>
         drawPile = drawPile.shuffled
-        false
+        false.pure[IO]
 
-      case Skip() => true
+      case Skip() => true.pure[IO]
 
       case AlterTheFuture3X() => { // doesnt work
         if (drawPile.length < 3) drawPile = Deck.initFromDiscardPile(drawPile, discardPile)
@@ -156,34 +165,52 @@ case class Game(nPlayers: Int) {
           _      <- IO.println("Next three cards are: \n") // todo send only for current player
           number <- getCardOrder(cards3, deckRemaining)
         } yield ()
-        false
+        false.pure[IO]
       }
 
       case SwapTopAndBottom() =>
         drawPile = drawPile.swapTopAndBottom
-        false
+        false.pure[IO]
 
       case Attack2X() =>
-        for {
-          nextPlayer <- nextPlayer()
-          _          <- playerTurn(nextPlayer)
-        } yield ()
-        true
+        nextPlayer().flatMap(player => playerTurn(player))
+        true.pure[IO]
 
       case TargetedAttack2X() => // todo ask for target
         attack2X = true
-        true
+        true.pure[IO]
       case CatomicBomb() =>
         drawPile = drawPile.withBombsOnTop
-        true
-      case Bury() => false // Todo
+        true.pure[IO]
+      case Bury() =>
+        for {
+          card <- drawCard()
+          _ <- IO.println("Where do you want to bury this card?")
+          _ <- buryCard(card)
+        } yield true
       case Reverse() =>
         drawPile = drawPile.reversed
-        false
-      case Tacocat() | FeralCat() => false
+        false.pure[IO]
+      case Tacocat() | FeralCat() => false.pure[IO]
 
     }
   }
+
+  private def buryCard(card : Card): IO[Unit] =
+    for {
+
+      _ <- IO.println(s"Insert a number between 1 and ${drawPile.length} >> ")
+      string <- IO.readLine.map(_.trim.toIntOption)
+      _ <- string match {
+        case Some(index) if (0 until  drawPile.length).contains(index - 1) =>
+          drawPile = drawPile.insertAt(index-1,card)
+          ().pure[IO]
+        case _ =>
+          IO.println("Invalid input ") *> buryCard(card)
+      }
+
+    } yield ()
+
 
   private def alterTheFuture(cards3: List[Card], remainingDeck: List[Card], order: String): String = {
     println(cards3)
