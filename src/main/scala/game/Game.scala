@@ -34,25 +34,21 @@ case class Game(nPlayers: Int) {
   private def initializeDeck(nPlayers: Int): IO[Unit] = IO.pure {
     drawPile = Deck.initShuffledNopeSauce(nPlayers)
   }
-
   private def setRandomStartingPlayer(): IO[Unit] = IO.pure {
     currentPlayerIndex = Random.nextInt(players.length)
 
   } *> IO.println(s"${players(currentPlayerIndex).playerID}'s starting")
-
-
   private def getPlayersNames: IO[Unit] = {
-    (1 to  nPlayers).toList.foldLeft(IO.unit) { (acc, i) =>
+    (1 to nPlayers).toList.foldLeft(IO.unit) { (acc, i) =>
       acc.flatMap { _ =>
         for {
-          _ <- IO.print(s"Insert player $i's name $nPlayers>>")
+          _    <- IO.print(s"Insert player $i's name $nPlayers>>")
           name <- IO.readLine.map(_.trim)
-          _ <- joinGame(name)
+          _    <- joinGame(name)
         } yield ()
       }
     }
   }
-
   def initialize(): IO[Unit] = {
     for {
       _ <- IO.println("initializing...")
@@ -64,104 +60,153 @@ case class Game(nPlayers: Int) {
 
     } yield ()
   }
-
   private def nextPlayer(): IO[Player] = IO.pure {
     currentPlayerIndex = (currentPlayerIndex + 1) % players.length
     players(currentPlayerIndex)
   }
-
-  private def removePlayerAt(i: Int): IO[Unit] = IO.pure({
-    val (left, right) = players.splitAt(i)
-    players = left ::: right.drop(1)
-  })
-
-
   private def killPlayer(playerIndex: Int): IO[Unit] =
-  for {
-    _ <- IO.println(s"${players(playerIndex).playerID} died")
-    _ <- removePlayerAt(playerIndex)
-    _ <- IO.println(s"Still playing: ${players.toString()}")
-  } yield ()
-
+    for {
+      _ <- IO.println(s"${players(playerIndex).playerID} died")
+      _ <- IO.pure {
+        val (left, right) = players.splitAt(playerIndex)
+        players = left ::: right.drop(1)
+      }
+      _ <- IO.println(s"Still playing: ${players.toString()}")
+    } yield ()
   private def gameLoop(player: Player): IO[Unit] = {
     val p = for {
-      _ <- IO.println(
-        s"\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
-      )
-      _          <- IO.println(s"\n${player.playerID}'s turn")
-      _          <- IO.println(s"\nYour hand is: \n ${player.handWithIndex()}")
-      _          <- askPlayOrPass(player)
-      card <- drawCard()
-      _ = discardPile.prepend(card)
-      _ <- IO.println(s"${player.playerID} drew a $card") //todo this print only for player
-      _ <- card match {
-        case ExplodingKitten() =>
-          IO.println(s"${player.playerID} drew a Exploding Kitten"
-          )*> player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(_ => IO.println("Defuse used"))
-        case card => player.drawCard(card).pure[IO]
-      }
+      _          <- playerTurn(player)
       nextPlayer <- nextPlayer()
     } yield nextPlayer
 
     p.flatMap(nextPlayer => gameLoop(nextPlayer))
 
   }
+  private def playerTurn(player: Player): IO[Unit] = {
+    for {
+      _ <- IO.println(
+        s"\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
+      )
+      _ <- IO.println(s"\n${player.playerID}'s turn")
+      _ <- IO.println(s"\nYour hand is: \n ${player.handWithIndex()}")
 
-  private def askPlayOrPass(player: Player): IO[Unit] =
+      playOrPass <- askPlayOrPass(player) //Does player want to play a card?
+      cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player)) //Which card?
+      playerSkipped <- cardOpt.fold(false.pure[IO])(card => handleCardPlayed(card)) //If card played, does player skip draw?
+
+
+      _ <- if (!playerSkipped) {
+        for {
+          card <- drawCard()
+          _ = discardPile.prepend(card)
+          _ <- IO.println(s"${player.playerID} drew a $card") // todo this print only for player
+          _ <- card match {
+            case ExplodingKitten() =>
+              IO.println(s"${player.playerID} drew a Exploding Kitten") *> player.tryGetDefuse.fold(
+                killPlayer(currentPlayerIndex)
+              )(_ => IO.println("Defuse used"))
+            case card => player.drawCard(card).pure[IO]
+          }
+        } yield ()
+      } else IO.unit
+    } yield ()
+  }
+  private def askPlayOrPass(player: Player): IO[Option[Boolean]] =
     for {
       _      <- IO.println("Do you wish to play a card? (type y/n)")
       answer <- IO.readLine.map(_.trim)
       result <- answer match {
-        case "y" => askForCard(player)
-        case "n" => ().pure[IO]
+        case "y" => Some(true).pure[IO]
+        case "n" => None.pure[IO]
         case _   => IO.println("Answer not valid, please type y or n.") *> askPlayOrPass(player)
       }
     } yield result
-
-  private def askForCard(player: Player): IO[Unit] =
+  private def askForCard(player: Player): IO[Option[Card]] =
     for {
-      _     <- IO.println("\nEnter the index of the card you want to play (c to cancel): ")
-      cardI <- IO.readLine.map(_.trim)
-      _ <- cardI match {
-        case "c" => ().pure[IO]
+      _ <- IO.println("\nEnter the index of the card you want to play (c to cancel): ")
+      cardOpt <- IO.readLine.map(_.trim).flatMap {
+        case "c" => None.pure[IO]
         case x if x.toIntOption.isDefined =>
           x.toInt match {
-            case i if (1 to player.hand.length) contains i => handleCardPlayed(player.playCard(i - 1))
+            case i if (1 to player.hand.length) contains i =>
+              Some(player.playCard(i - 1)).pure[IO] // handleCardPlayed(player.playCard(i - 1))
 
             case _ => IO.println("Invalid index") *> askForCard(player)
           }
         case _ => IO.println("Invalid input") *> askForCard(player)
       }
-
-    } yield ()
+    } yield cardOpt
 
   // option next playerID?
-  private def handleCardPlayed(card: Card): IO[Unit] = IO.pure {
+  private def handleCardPlayed(card: Card): IO[Boolean] = IO.pure {
+    // todo: dont allow: play a defuse or a nope (on first card)
     card match {
       case Shuffle() =>
         drawPile = drawPile.shuffled
+        false
 
-      case Nope() => ???
+      case Skip() => true
 
-      case Skip() => skip = true
+      case AlterTheFuture3X() => { // doesnt work
+        if (drawPile.length < 3) drawPile = Deck.initFromDiscardPile(drawPile, discardPile)
 
-      case AlterTheFuture3X() => ???
+        val (cards3, deckRemaining) = drawPile.getFirstN(3)
+
+        for {
+          _      <- IO.println("Next three cards are: \n") // todo send only for current player
+          number <- getCardOrder(cards3, deckRemaining)
+        } yield ()
+        false
+      }
 
       case SwapTopAndBottom() =>
         drawPile = drawPile.swapTopAndBottom
+        false
 
       case Attack2X() =>
-        attack2X = true
-        skip = true
+        for {
+          nextPlayer <- nextPlayer()
+          _          <- playerTurn(nextPlayer)
+        } yield ()
+        true
 
       case TargetedAttack2X() => // todo ask for target
         attack2X = true
-        skip = true
-      case CatomicBomb() => ???
-      case Bury()        => ???
-      case Reverse()     => drawPile = drawPile.reversed
+        true
+      case CatomicBomb() =>
+        drawPile = drawPile.withBombsOnTop
+        true
+      case Bury() => false // Todo
+      case Reverse() =>
+        drawPile = drawPile.reversed
+        false
+      case Tacocat() | FeralCat() => false
+
     }
   }
+
+  private def alterTheFuture(cards3: List[Card], remainingDeck: List[Card], order: String): String = {
+    println(cards3)
+    val cardsnew = order.map(_.toString.toInt - 1).map(cards3).toList
+
+    println(cardsnew)
+    drawPile = Deck(cardsnew ++ remainingDeck)
+    order
+  }
+
+  private def getCardOrder(cards3: List[Card], deckRemaining: List[Card]): IO[String] =
+    for {
+      _ <- IO.println(s"${cards3.zipWithIndex.foldLeft("") { case (acc, (card, i)) =>
+          acc ++ s"${i + 1}. $card\n"
+        }}")
+      _      <- IO.println("Insert new card order (e.g. 213) >>")
+      string <- IO.readLine.map(_.replaceAll(" ", ""))
+      valid <- string.toSet match {
+        case set if set == Set('1', '2', '3') => alterTheFuture(cards3, deckRemaining, string).pure[IO]
+        case _ =>
+          IO.println("Invalid input, please specify order using only numbers") *> getCardOrder(cards3, deckRemaining)
+      }
+    } yield valid
 
   private def handCards(): IO[Unit] = IO.pure {
     println("handing cards...")
@@ -189,7 +234,7 @@ case class Game(nPlayers: Int) {
     discardPile = Deck(List.empty[Card])
   }
 
-   private def drawCard(): IO[Card] = {
+  private def drawCard(): IO[Card] = {
     val draw = drawPile.draw
 
     draw.fold(switchPiles() *> IO({
@@ -198,10 +243,9 @@ case class Game(nPlayers: Int) {
           drawPile = deck
           card
       }
-    }))({
-      case (deck, card) =>
-        drawPile = deck
-        card.pure[IO]
+    }))({ case (deck, card) =>
+      drawPile = deck
+      card.pure[IO]
     })
   }
 
@@ -212,7 +256,7 @@ case class Game(nPlayers: Int) {
         card.pure[IO]
     })
   }
-*/
+   */
 
   private def checkWinner(): IO[Option[Player]] = IO.pure {
     players.length match {
@@ -227,7 +271,7 @@ object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] = {
 
     for {
-      _ <-IO.println("EXPLODING KITTENS - SCALA EDITION\n\n")
+      _   <- IO.println("EXPLODING KITTENS - SCALA EDITION\n\n")
       num <- getNumberOfPlayers
       game = Game(num)
       _ <- game.initialize()
@@ -239,11 +283,12 @@ object Main extends IOApp {
     for {
       _ <- IO.print("Please insert number of players (2-5) >>")
       num <- IO.readLine.flatMap(_.toIntOption match {
-        case Some(x) => x match {
-          case i if (2 to 5) contains i => i.pure[IO]
+        case Some(x) =>
+          x match {
+            case i if (2 to 5) contains i => i.pure[IO]
 
-          case _ => IO.println("Invalid number of players") *> getNumberOfPlayers
-        }
+            case _ => IO.println("Invalid number of players") *> getNumberOfPlayers
+          }
         case None => IO.println("Invalid input") *> getNumberOfPlayers
       })
     } yield num

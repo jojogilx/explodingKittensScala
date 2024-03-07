@@ -58,13 +58,28 @@ object Deck {
     Deck(discardPile.cards).shuffled
   }
 
+  def initFromDiscardPile(drawPile: Deck, discardPile: Deck): Deck = {
+    Deck(drawPile.cards ++ discardPile.cards).shuffled
+  }
+
 
 }
   case class Deck(private val cards: List[Card]) {
 
     def shuffled: Deck = Deck(Random.shuffle(cards))
-    def reversed: Deck = Deck(cards.reverse)
+    def length: Int = cards.length
 
+    def reversed: Deck = Deck(cards.reverse)
+    def getFirstN(number: Int): (List[Card], List[Card]) = {
+      val (before, after) = cards.splitAt(number)
+      (before, after)
+    }
+
+    def withBombsOnTop: Deck = {
+      val explodingKittens = cards.filter(_ == ExplodingKitten())
+      val otherCards = cards.filter(_ != ExplodingKitten())
+      Deck(explodingKittens ++ otherCards)
+    }
     def draw: Option[(Deck, Card)] = cards match {
       case Nil => None
       case card :: newDeck => Some(Deck(newDeck), card)
@@ -78,6 +93,11 @@ object Deck {
     def prepend(card: Card): Deck = {
       Deck(card :: cards)
     }
+
+    def getFirstN(card: Card): Deck = {
+      Deck(card :: cards)
+    }
+
 
     def swapTopAndBottom: Deck = {
       val first +: cards :+ last = this.cards
