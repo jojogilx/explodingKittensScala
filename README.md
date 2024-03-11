@@ -1,11 +1,13 @@
-For 1st milestone:
+## For 1st milestone:
 > Game almost functional
-> Cards needing fix/implementation:
-  - Attack 2x
-  - Targetted Attack 2x
+> 
+> Cards implemented
+> 
 > TODO allowing multiple cards being played
-> TODO add defuse to discard pile when used
+>
 > Test winning condition
 
-For next milestone:
+## For next milestone:
 > Have multiplayer server
+> 
+> Better code
