@@ -62,7 +62,7 @@ case class Game(nPlayers: Int) {
       case _                                         => 0
     }
 
-    println(s"next player ${players(currentPlayerIndex)}")
+    //println(s"next player ${players(currentPlayerIndex)}")
     players(currentPlayerIndex)
   }
 
@@ -73,8 +73,14 @@ case class Game(nPlayers: Int) {
       case x          => x
     }
 
-    println(s"next player ${players(currentPlayerIndex)}")
+    //println(s"next player ${players(currentPlayerIndex)}")
     players(currentPlayerIndex)
+  }
+
+  private def setNextPlayer(player: Player): IO[Unit] = IO.pure {
+      if(players.contains(player))
+        currentPlayerIndex = players.indexOf(player)
+      else println("illegal state")
   }
 
   private def killPlayer(playerIndex: Int): IO[Unit] =
@@ -199,7 +205,7 @@ case class Game(nPlayers: Int) {
                   _ <- IO.println(s"${player.playerID} drew a Exploding Kitten")
                   _ <- addCardToDiscardDeck(ExplodingKitten())
                   _ <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
-                    IO.println("Defuse used") *> addCardToDiscardDeck(Defuse())
+                    IO.println("Defuse used") *> addCardToDiscardDeck(defuse)
                   )
                 } yield ()
               case card => player.drawCard(card).pure[IO]
@@ -264,13 +270,18 @@ case class Game(nPlayers: Int) {
 
       case Attack2X() =>
         for {
-          player <- nextPlayer()
-          _      <- playerTurn(player)
+          nextPlayer <- nextPlayer()
+          _      <- playerTurn(nextPlayer)
           _      <- previousPlayer()
         } yield true
 
-      case TargetedAttack2X() => // todo ask for target
-        true.pure[IO]
+      case TargetedAttack2X() =>
+        for {
+          nextPlayer <- targetAttack(player)
+          _ <- setNextPlayer(nextPlayer)
+          _      <- playerTurn(nextPlayer)
+          _      <- previousPlayer()
+        } yield true
 
       case CatomicBomb() =>
         drawPile = drawPile.withBombsOnTop
@@ -297,6 +308,26 @@ case class Game(nPlayers: Int) {
     } yield ()
 
   // ______________ Card Actions ____________________________//
+
+  private def targetAttack(player: Player): IO[Player] =
+    for {
+      _ <- printlnForPlayer(player, "Who do you want to target? \n")
+      _ <- printlnForPlayer(
+        player,
+        s"${players.filterNot(_.playerID == player.playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
+          acc ++ s"${i + 1}. ${p.playerID}\n"
+        }}"
+      )
+      _      <- printlnForPlayer(player, "Insert index >> ")
+      string <- IO.readLine.map(_.toIntOption)
+      valid <- string match {
+        case Some(value) => value match {
+          case x if (1 until  players.length) contains x =>
+            players.filterNot(_.playerID == player.playerID)(x - 1).pure[IO]
+        }
+        case None => printlnForPlayer(player, "Invalid input") *> targetAttack(player)
+      }
+    } yield valid
 
   private def askforNope(): IO[Boolean] = { // todo: Nope only functional when multiplayer
     /*    for {
