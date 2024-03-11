@@ -2,12 +2,15 @@ package players
 
 import card.Cards.{Card, Defuse, Hand}
 import cats.implicits.catsSyntaxOptionId
+import utils.Utils.TerminalUtils.Reset
+
+import scala.util.control.Breaks
 
 object Players {
 
   type PlayerID = String
 
-  case class Player(playerID: PlayerID) {
+  case class Player(playerID: PlayerID, textColor: String) {
     private var cards = List.empty[Card]
 
     def hand: Hand = {
@@ -45,7 +48,7 @@ object Players {
 
     def handWithIndex(): String = {
       cards.zipWithIndex.map {
-        case (card, i) => s"${i + 1}. ${card.toString}     "
+        case (card, i) => s"${i + 1}. $card   "
       }.mkString
     }
 

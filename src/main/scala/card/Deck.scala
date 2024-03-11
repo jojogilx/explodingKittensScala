@@ -7,8 +7,6 @@ import scala.util.Random
 
 object Deck {
   def initShuffledNopeSauce(nPlayers: Int): Deck = {
-
-    println("dealing nope sauce...")
     val cards : List[Card] = {
 
       (1 to 3).foldLeft(List.empty[Card]) { (acc, _) =>
