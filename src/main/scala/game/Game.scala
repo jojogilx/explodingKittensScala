@@ -157,7 +157,8 @@ case class Game(nPlayers: Int) {
       _ <- IO.println(
         s"\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
       )
-      _ <- IO.println(drawPile)
+      _ <- IO.println(s"discard: $discardPile")
+      _ <- IO.println(s"draw: $drawPile")
       _ <- IO.println(s"\n${player.playerID}'s turn")
       _ <- printlnForPlayer(player, s"\nYour hand is: \n ${player.handWithIndex()}")
 
@@ -182,9 +183,13 @@ case class Game(nPlayers: Int) {
             _    <- printlnForPlayer(player, s"$card drawn")
             _ <- card match {
               case ExplodingKitten() =>
-                IO.println(s"${player.playerID} drew a Exploding Kitten") *> player.tryGetDefuse.fold(
-                  killPlayer(currentPlayerIndex)
-                )(_ => IO.println("Defuse used"))
+                for {
+                  _ <- IO.println(s"${player.playerID} drew a Exploding Kitten")
+                  _ <- addCardToDiscardDeck(ExplodingKitten())
+                  defuse <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
+                    IO.println("Defuse used") *> addCardToDiscardDeck(Defuse())
+                  )
+                } yield ()
               case card => player.drawCard(card).pure[IO]
             }
           } yield ()
@@ -234,12 +239,12 @@ case class Game(nPlayers: Int) {
       case Skip() => true.pure[IO]
 
       case AlterTheFuture3X() =>
-          for {
-            res <- getFirstNDrawn(3)
-            (cards3, deckRemaining) = res
-            number <- getCardOrder(player, cards3, deckRemaining)
-            _ <- alterTheFuture(cards3, deckRemaining, number)
-          } yield false
+        for {
+          res <- getFirstNDrawn(3)
+          (cards3, deckRemaining) = res
+          number <- getCardOrder(player, cards3, deckRemaining)
+          _      <- alterTheFuture(cards3, deckRemaining, number)
+        } yield false
 
       case SwapTopAndBottom() =>
         drawPile = drawPile.swapTopAndBottom
