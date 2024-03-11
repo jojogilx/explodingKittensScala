@@ -56,15 +56,27 @@ case class Game(nPlayers: Int) {
     } yield ()
   }
   private def nextPlayer(): IO[Player] = IO.pure {
-    println(s"next player ${currentPlayerIndex + 1}")
 
     currentPlayerIndex = currentPlayerIndex + 1 match {
       case x if (1 until players.length).contains(x) => x
       case _                                         => 0
     }
 
+    println(s"next player ${players(currentPlayerIndex)}")
     players(currentPlayerIndex)
   }
+
+  private def previousPlayer(): IO[Player] = IO.pure {
+
+    currentPlayerIndex = currentPlayerIndex - 1 match {
+      case x if x < 0 => players.length - 1
+      case x          => x
+    }
+
+    println(s"next player ${players(currentPlayerIndex)}")
+    players(currentPlayerIndex)
+  }
+
   private def killPlayer(playerIndex: Int): IO[Unit] =
     for {
       _ <- IO.println(s"${players(playerIndex).playerID} died")
@@ -186,7 +198,7 @@ case class Game(nPlayers: Int) {
                 for {
                   _ <- IO.println(s"${player.playerID} drew a Exploding Kitten")
                   _ <- addCardToDiscardDeck(ExplodingKitten())
-                  defuse <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
+                  _ <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
                     IO.println("Defuse used") *> addCardToDiscardDeck(Defuse())
                   )
                 } yield ()
@@ -251,8 +263,11 @@ case class Game(nPlayers: Int) {
         false.pure[IO]
 
       case Attack2X() =>
-        nextPlayer().flatMap(player => playerTurn(player))
-        true.pure[IO]
+        for {
+          player <- nextPlayer()
+          _      <- playerTurn(player)
+          _      <- previousPlayer()
+        } yield true
 
       case TargetedAttack2X() => // todo ask for target
         true.pure[IO]
