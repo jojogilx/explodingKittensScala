@@ -311,7 +311,7 @@ case class Game(nPlayers: Int) {
 
   private def targetAttack(player: Player): IO[Player] =
     for {
-      _ <- printlnForPlayer(player, "Who do you want to target? \n")
+      _ <- printlnForPlayer(player, "\nWho do you want to target? \n")
       _ <- printlnForPlayer(
         player,
         s"${players.filterNot(_.playerID == player.playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
@@ -324,6 +324,7 @@ case class Game(nPlayers: Int) {
         case Some(value) => value match {
           case x if (1 until  players.length) contains x =>
             players.filterNot(_.playerID == player.playerID)(x - 1).pure[IO]
+          case _ => printlnForPlayer(player, "Invalid index") *> targetAttack(player)
         }
         case None => printlnForPlayer(player, "Invalid input") *> targetAttack(player)
       }
