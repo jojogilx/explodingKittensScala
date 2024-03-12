@@ -1,10 +1,8 @@
 package players
 
-import card.Cards.{Card, Defuse, Hand}
+import card._
 import cats.implicits.catsSyntaxOptionId
-import utils.Utils.TerminalUtils.Reset
 
-import scala.util.control.Breaks
 
 object Players {
 
@@ -21,7 +19,7 @@ object Players {
 
     def tryGetDefuse: Option[Card] =
       cards.zipWithIndex.find { case (card, _) => card match {
-        case Defuse() => true
+        case Defuse => true
         case _ => false
       }} match {
         case Some((card, i)) =>

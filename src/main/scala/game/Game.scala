@@ -1,6 +1,6 @@
 package game
 
-import card.Cards._
+import card._
 import card.Deck
 import cats.effect._
 import cats.implicits._
@@ -151,7 +151,7 @@ case class Game(nPlayers: Int) {
       val cards = {
         val (left, right) = deck.splitAt(7)
         deck = right
-        left :+ Defuse()
+        left :+ Defuse
       }
       p.initHand(cards)
     })
@@ -205,10 +205,10 @@ case class Game(nPlayers: Int) {
             _    <- printlnForPlayer(player, s"\n$card drawn")
 
             _ <- card match {
-              case ExplodingKitten() =>
+              case ExplodingKitten =>
                 for {
                   _ <- IO.println(s"\n${player.playerID} drew a $card")
-                  _ <- addCardToDiscardDeck(ExplodingKitten())
+                  _ <- addCardToDiscardDeck(ExplodingKitten)
                   _ <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
                     IO.println(s"$defuse used") *> addCardToDiscardDeck(defuse)
                   )
@@ -241,7 +241,7 @@ case class Game(nPlayers: Int) {
           x.toInt match {
             case i if (1 to player.hand.length) contains i =>
               player.hand(i - 1) match {
-                case ExplodingKitten() | Defuse() | Nope() =>
+                case ExplodingKitten | Defuse | Nope =>
                   printlnForPlayer(player, s"${RedText}You can't play this card right now$Reset") *> askForCard(player)
                 case _ => Some(player.playCard(i - 1)).pure[IO]
               }
@@ -255,13 +255,13 @@ case class Game(nPlayers: Int) {
   // option next playerID?
   private def handleCardPlayed(player: Player, card: Card): IO[Boolean] = {
     card match {
-      case Shuffle() =>
+      case Shuffle =>
         drawPile = drawPile.shuffled
         false.pure[IO]
 
-      case Skip() => true.pure[IO]
+      case Skip => true.pure[IO]
 
-      case AlterTheFuture3X() =>
+      case AlterTheFuture3X =>
         for {
           res <- getFirstNDrawn(3)
           (cards3, deckRemaining) = res
@@ -269,18 +269,18 @@ case class Game(nPlayers: Int) {
           _      <- alterTheFuture(cards3, deckRemaining, number)
         } yield false
 
-      case SwapTopAndBottom() =>
+      case SwapTopAndBottom =>
         drawPile = drawPile.swapTopAndBottom
         false.pure[IO]
 
-      case Attack2X() =>
+      case Attack2X =>
         for {
           nextPlayer <- nextPlayer()
           _          <- playerTurn(nextPlayer)
           _          <- previousPlayer()
         } yield true
 
-      case TargetedAttack2X() =>
+      case TargetedAttack2X =>
         for {
           nextPlayer <- targetAttack(player)
           _          <- setNextPlayer(nextPlayer)
@@ -288,21 +288,21 @@ case class Game(nPlayers: Int) {
           _          <- previousPlayer()
         } yield true
 
-      case CatomicBomb() =>
+      case CatomicBomb =>
         drawPile = drawPile.withBombsOnTop
         true.pure[IO]
 
-      case Bury() =>
+      case Bury =>
         for {
           card <- drawCard()
           _    <- buryCard(player, card)
         } yield true
 
-      case Reverse() =>
+      case Reverse =>
         drawPile = drawPile.reversed
         false.pure[IO]
 
-      case Tacocat() | FeralCat() => false.pure[IO]
+      case Tacocat | FeralCat => false.pure[IO]
 
     }
   }
