@@ -1,9 +1,7 @@
-## For 1st milestone:
-> Game almost functional
+#### 1st milestone ✔
+> Functional game
 > 
-> Cards implemented
->
-> Test winning condition
+> Cards implemented minus Nope, Tacocat and Feral Cat
 
 ## For next milestone:
 > Have multiplayer server
@@ -12,7 +10,7 @@
 > 
 > Nope card implementation and testing
 
-## For last milestone:
+### For last milestone:
 > Better code
 > 
 > multiple cards being played
