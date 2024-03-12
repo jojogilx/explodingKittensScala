@@ -1,6 +1,6 @@
 package card
 
-import utils.Utils.TerminalUtils._
+import utils.TerminalUtils._
 
 sealed trait Card {
   val description: String
@@ -8,7 +8,7 @@ sealed trait Card {
   val emoji: String
   val textColor: String
 
-  override def toString: String = s"$textColor $emoji $title $emoji $Reset"
+  override def toString: String = s"$textColor $emoji $title $emoji $ResetText"
 
 }
 
@@ -23,7 +23,7 @@ case object Defuse extends Card {
   override val description: String = "Instead of exploding, put your last drawn card back into the deck"
   override val title: String       = "Defuse"
   override val emoji: String       = "\u2702\uFE0F"
-  override val textColor: String   = LimeGreenText
+  override val textColor: String   = BrightGreenText
 }
 
 case object Shuffle extends Card {

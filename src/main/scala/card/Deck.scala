@@ -67,10 +67,10 @@ println(cards)
     *   tuple of card list with no bombs and defuses and the list of bombs
     */
   def removeDefuseAndBombs(deck: Deck): (List[Card], List[Card]) = {
-    val cardsNoBombs = deck.cards.filterNot(_ == ExplodingKitten).filterNot(_ == Defuse)
-
-    (cardsNoBombs, List.fill(deck.cards.count(_ == ExplodingKitten))(ExplodingKitten))
-
+    deck.cards.filterNot(_ == Defuse).partition({
+      case ExplodingKitten => false
+      case _ => true
+    })
   }
 
 }
