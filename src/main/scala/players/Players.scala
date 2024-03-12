@@ -9,6 +9,7 @@ import scala.util.control.Breaks
 object Players {
 
   type PlayerID = String
+  private type Hand = List[Card]
 
   case class Player(playerID: PlayerID, textColor: String) {
     private var cards = List.empty[Card]
