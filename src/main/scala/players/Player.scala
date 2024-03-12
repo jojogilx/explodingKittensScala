@@ -11,7 +11,7 @@ object Player {
   //see if smt should be here
 }
 
-case class Player(playerID: PlayerID, textColor: String) {
+case class Player(playerID: PlayerID) {
   private var cards = List.empty[Card] //todo: remove var
 
   /**

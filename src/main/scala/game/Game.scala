@@ -11,7 +11,7 @@ import utils.TerminalUtils._
 
 import scala.util.Random
 
-case class Game(nPlayers: Int) {
+case class Game(nPlayers: Int, broadcaster: String => IO[Unit], sendToPlayer: (String, PlayerID) => IO[Unit]) {
 
   private val PlayerColors: List[String] =
     List(RedText,BlueText,YellowText,GreenText,MagentaText)
@@ -22,36 +22,30 @@ case class Game(nPlayers: Int) {
   private var drawPile: Deck = Deck(List.empty[Card])
 
   private var discardPile: Deck = Deck(List.empty[Card])
-
-  // await players join
-  // await start game
-  // distribute cards
-  // manage turns
-  // manage win
-
+  
   // _______________ Game Structure Operations ______________________________//
-  private def joinGame(playerID: PlayerID): IO[Unit] = IO.pure {
-    players = players :+ Player(playerID, PlayerColors(players.length))
-    println(s"$CyanText$playerID joined the game$ResetText")
-  }
+  def joinGame(playerID: PlayerID): IO[Unit] = IO.pure {
+    players = players :+ Player(playerID) } *>
+    broadcaster(s"$CyanText$playerID joined the game$ResetText")
+ 
   private def setRandomStartingPlayer(): IO[Unit] = IO.pure {
     currentPlayerIndex = Random.nextInt(players.length)
 
-  } *> IO.println(s"${players(currentPlayerIndex).textColor}${players(currentPlayerIndex).playerID}$ResetText's starting")
+  } *> broadcaster(s"${players(currentPlayerIndex)}${players(currentPlayerIndex).playerID}$ResetText's starting")
   private def getPlayersNames: IO[Unit] = {
     (1 to nPlayers).toList.foldLeft(IO.unit) { (acc, i) =>
       acc.flatMap { _ =>
         for {
-          _    <- IO.print(s"\nInsert ${PlayerColors(i-1)}player $i$ResetText's name >> ")
+          _    <- broadcaster(s"\nInsert ${PlayerColors(i-1)}player $i$ResetText's name >> ")
           name <- IO.readLine.map(_.trim)
           _    <- joinGame(name)
         } yield ()
       }
     }
   }
-  def initialize(): IO[Unit] = {
+  def initialize2(): IO[Unit] = {
     for {
-      _ <- IO.println(s"\n${CyanText}Initializing...$ResetText")
+      _ <- broadcaster(s"\n${CyanText}Initializing...$ResetText")
       _ <- getPlayersNames
       _ = initializeDeck(nPlayers)
       _ <- handCards()
@@ -60,6 +54,18 @@ case class Game(nPlayers: Int) {
 
     } yield ()
   }
+
+  def initialize(): IO[Unit] = {
+    for {//wait for 5 players
+      _ <- broadcaster(s"\n${CyanText}Initializing...$ResetText")
+      _ = initializeDeck(nPlayers)
+      _ <- handCards()
+      _ <- setRandomStartingPlayer()
+      _ <- gameLoop(players(currentPlayerIndex))
+
+    } yield ()
+  }
+
   private def nextPlayer(): IO[Player] = IO.pure {
 
     currentPlayerIndex = currentPlayerIndex + 1 match {
@@ -88,9 +94,9 @@ case class Game(nPlayers: Int) {
 
   private def killPlayer(playerIndex: Int): IO[Unit] =
     for {
-      _ <- IO.print(s"\n$SkullEmojiUnicode ")
-      _ <- IO.print(s"${players(playerIndex).textColor}${players(playerIndex).playerID}$ResetText died")
-      _ <- IO.print(s" $SkullEmojiUnicode\n")
+      _ <- broadcaster(s"\n$SkullEmojiUnicode" +
+        s" ${players(playerIndex)}${players(playerIndex).playerID}$ResetText died" +
+        s" $SkullEmojiUnicode\n")
       _ <- IO.pure {
         val (left, right) = players.splitAt(playerIndex)
         players = left ::: right.drop(1)
@@ -104,7 +110,7 @@ case class Game(nPlayers: Int) {
     } yield nextPlayer
 
     checkWinner().flatMap({
-      case Some(player) => IO.println(s"${player.textColor}${player.playerID} won the game$ResetText")
+      case Some(player) => broadcaster(s"$player${player.playerID} won the game$ResetText")
       case None         => p.flatMap(nextPlayer => gameLoop(nextPlayer))
     })
 
@@ -144,7 +150,7 @@ case class Game(nPlayers: Int) {
   }
 
   private def handCards(): IO[Unit] = IO.pure {
-    println(s"\n${CyanText}Handing cards...$ResetText\n")
+    broadcaster(s"\n${CyanText}Handing cards...$ResetText\n")
 
     val (deckWOBombs, bombs) = removeDefuseAndBombs(drawPile)
     var deck                 = deckWOBombs
@@ -165,7 +171,7 @@ case class Game(nPlayers: Int) {
   }
 
   private def switchPiles(): IO[Unit] = IO.pure {
-    println(s"${CyanText}switching piles$ResetText")
+    broadcaster(s"${CyanText}switching piles$ResetText")
 
     drawPile = Deck.initShuffledFromDiscardPile(discardPile)
     discardPile = Deck(List.empty[Card])
@@ -180,13 +186,13 @@ case class Game(nPlayers: Int) {
   // ___________ Turn Operations ______________________________//
   private def playerTurn(player: Player): IO[Unit] = {
     for {
-      _ <- IO.println(
+      _ <- broadcaster(
         s"\n-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
       )
       _ <- IO.println(s"discard: $discardPile")
       _ <- IO.println(s"draw: $drawPile")
-      _ <- IO.println(s"\n${player.textColor}${player.playerID}$ResetText's turn")
-      _ <- printlnForPlayer(player, s"\nYour hand is: \n ${player.handWithIndex()}")
+      _ <- broadcaster(s"\n${player}${player.playerID}$ResetText's turn")
+      _ <- sendToPlayer(player.playerID, s"\nYour hand is: \n ${player.handWithIndex()}")
 
       playOrPass <- askPlayOrPass(player) // Does player want to play a card?
       cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player)) // Which card?
@@ -206,15 +212,15 @@ case class Game(nPlayers: Int) {
         if (!playerSkipped) {
           for {
             card <- drawCard()
-            _    <- printlnForPlayer(player, s"\n$card drawn")
+            _    <- sendToPlayer(player.playerID, s"\n$card drawn")
 
             _ <- card match {
               case ExplodingKitten =>
                 for {
-                  _ <- IO.println(s"\n${player.playerID} drew a $card")
+                  _ <- broadcaster(s"\n${player.playerID} drew a $card")
                   _ <- addCardToDiscardDeck(ExplodingKitten)
                   _ <- player.tryGetDefuse.fold(killPlayer(currentPlayerIndex))(defuse =>
-                    IO.println(s"$defuse used") *> addCardToDiscardDeck(defuse)
+                    broadcaster(s"$defuse used") *> addCardToDiscardDeck(defuse)
                   )
                 } yield ()
               case card => player.drawCard(card).pure[IO]
@@ -227,18 +233,18 @@ case class Game(nPlayers: Int) {
 
   private def askPlayOrPass(player: Player): IO[Option[Boolean]] =
     for {
-      _      <- printlnForPlayer(player, s"\n${player.playerID}, do you wish to play a card? (y/n)")
+      _      <- sendToPlayer(player.playerID, s"\n${player.playerID}, do you wish to play a card? (y/n)")
       answer <- IO.readLine.map(_.trim.toLowerCase)
       result <- answer match {
         case "y" => Some(true).pure[IO]
         case "n" => None.pure[IO]
-        case _   => printlnForPlayer(player, s"${RedText}Invalid input$ResetText") *> askPlayOrPass(player)
+        case _   => sendToPlayer(player.playerID, s"${RedText}Invalid input$ResetText") *> askPlayOrPass(player)
       }
     } yield result
 
   private def askForCard(player: Player): IO[Option[Card]] =
     for {
-      _ <- printlnForPlayer(player, "\nEnter the index of the card you want to play (c to cancel).")
+      _ <- sendToPlayer(player.playerID, "\nEnter the index of the card you want to play (c to cancel).")
       cardOpt <- IO.readLine.map(_.trim.toLowerCase).flatMap {
         case "c" => None.pure[IO]
         case x if x.toIntOption.isDefined =>
@@ -246,13 +252,13 @@ case class Game(nPlayers: Int) {
             case i if (1 to player.hand.length) contains i =>
               player.hand(i - 1) match {
                 case ExplodingKitten | Defuse | Nope =>
-                  printlnForPlayer(player, s"${RedText}You can't play this card right now$ResetText") *> askForCard(player)
+                  sendToPlayer(player.playerID, s"${RedText}You can't play this card right now$ResetText") *> askForCard(player)
                 case _ => Some(player.playCard(i - 1)).pure[IO]
               }
 
-            case _ => printlnForPlayer(player, s"${RedText}Invalid index$ResetText") *> askForCard(player)
+            case _ => sendToPlayer(player.playerID, s"${RedText}Invalid index$ResetText") *> askForCard(player)
           }
-        case _ => printlnForPlayer(player, s"${RedText}Invalid input$ResetText") *> askForCard(player)
+        case _ => sendToPlayer(player.playerID, s"${RedText}Invalid input$ResetText") *> askForCard(player)
       }
     } yield cardOpt
 
@@ -311,32 +317,26 @@ case class Game(nPlayers: Int) {
     }
   }
 
-  private def printlnForPlayer(player: Player, message: String): IO[Unit] = // todo: change when on server
-    for {
-      _ <- IO.println(s"$message")
-    } yield ()
-
   // ______________ Card Actions ____________________________//
 
   private def targetAttack(player: Player): IO[Player] =
     for {
-      _ <- printlnForPlayer(player, "\nWho do you want to target? \n")
-      _ <- printlnForPlayer(
-        player,
+      _ <- sendToPlayer(player.playerID, "\nWho do you want to target? \n")
+      _ <- sendToPlayer(player.playerID,
         s"${players.filterNot(_.playerID == player.playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
             acc ++ s"${i + 1}. ${p.playerID}\n"
           }}"
       )
-      _      <- printlnForPlayer(player, "Insert index >> ")
+      _      <- sendToPlayer(player.playerID, "Insert index >> ")
       string <- IO.readLine.map(_.toIntOption)
       valid <- string match {
         case Some(value) =>
           value match {
             case x if (1 until players.length) contains x =>
               players.filterNot(_.playerID == player.playerID)(x - 1).pure[IO]
-            case _ => printlnForPlayer(player, s"${RedText}Invalid index$ResetText") *> targetAttack(player)
+            case _ => sendToPlayer(player.playerID, s"${RedText}Invalid index$ResetText") *> targetAttack(player)
           }
-        case None => printlnForPlayer(player, s"${RedText}Invalid input$ResetText") *> targetAttack(player)
+        case None => sendToPlayer(player.playerID, s"${RedText}Invalid input$ResetText") *> targetAttack(player)
       }
     } yield valid
 
@@ -355,15 +355,15 @@ case class Game(nPlayers: Int) {
 
   private def buryCard(player: Player, card: Card): IO[Unit] =
     for {
-      _      <- printlnForPlayer(player, "Where do you want to bury this card?")
-      _      <- printlnForPlayer(player, s"Insert a number between 1 and ${drawPile.length} >> ")
+      _      <- sendToPlayer(player.playerID, "Where do you want to bury this card?")
+      _      <- sendToPlayer(player.playerID, s"Insert a number between 1 and ${drawPile.length} >> ")
       string <- IO.readLine.map(_.trim.toIntOption)
       _ <- string match {
         case Some(index) if (0 until drawPile.length).contains(index - 1) =>
           drawPile = drawPile.insertAt(index - 1, card)
           ().pure[IO]
         case _ =>
-          printlnForPlayer(player, s"${RedText}Invalid input$ResetText") *> buryCard(player, card)
+          sendToPlayer(player.playerID, s"${RedText}Invalid input$ResetText") *> buryCard(player, card)
       }
 
     } yield ()
@@ -378,19 +378,18 @@ case class Game(nPlayers: Int) {
 
   private def getCardOrder(player: Player, cards3: List[Card], deckRemaining: List[Card]): IO[String] =
     for {
-      _ <- printlnForPlayer(player, "Next three cards are: \n")
-      _ <- printlnForPlayer(
-        player,
+      _ <-sendToPlayer(player.playerID, "Next three cards are: \n")
+      _ <- sendToPlayer(player.playerID,
         s"${cards3.zipWithIndex.foldLeft("") { case (acc, (card, i)) =>
             acc ++ s"${i + 1}. $card\n"
           }}"
       )
-      _      <- printlnForPlayer(player, "Insert new card order (e.g. 213) >>")
+      _      <- sendToPlayer(player.playerID, "Insert new card order (e.g. 213) >>")
       string <- IO.readLine.map(_.replaceAll(" ", ""))
       valid <- string.toSet match {
         case set if set == Set('1', '2', '3') => string.pure[IO]
         case _ =>
-          printlnForPlayer(player, s"${RedText}Invalid input, please specify order using only numbers$ResetText") *> getCardOrder(
+          sendToPlayer(player.playerID, s"${RedText}Invalid input, please specify order using only numbers$ResetText") *> getCardOrder(
             player,
             cards3,
             deckRemaining
@@ -409,12 +408,13 @@ object Main extends IOApp {
       _ <- IO.println(s"$BombEmojiUnicode$FireEmojiUnicode\n\n")
 
       num <- getNumberOfPlayers
-      game = Game(num)
+      game = Game(num, s => IO.println(s), (_,s) => IO.println(s))
 
       _ <- game.initialize()
     } yield ExitCode.Success
 
   }
+
 
   private def getNumberOfPlayers: IO[Int] =
     for {

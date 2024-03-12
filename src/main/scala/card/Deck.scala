@@ -32,9 +32,7 @@ object Deck {
     *   created shuffled deck
     */
   def initShuffledNopeSauce(nPlayers: Int): Deck = {
-
     val cards = nopeSauceMap(nPlayers).flatMap { case (card, count) => List.fill(count)(card) }.toList
-println(cards)
     Deck(cards).shuffled
   }
 
