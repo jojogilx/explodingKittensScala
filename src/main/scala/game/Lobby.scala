@@ -8,13 +8,9 @@ import fs2._
 import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.ErrorHandling
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
-import players.Player
 import players.Player.PlayerID
-import rooms.Room
-import rooms.Room._
 import utils.TerminalUtils._
 
 import java.util.UUID
@@ -26,7 +22,6 @@ object Lobby extends IOApp {
   // join room
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
-      playersRef  <- Ref.of[IO, Map[PlayerID, UUID]](Map.empty)
       messagesRef <- Ref.of[IO, Map[String, Queue[IO, WebSocketFrame]]](Map.empty)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
@@ -41,14 +36,14 @@ object Lobby extends IOApp {
         }
 
         def sendMessage(playerID: PlayerID, message: String): IO[Unit] = {
-                messagesRef.get.flatMap { messageMap =>
-                  messageMap.get(playerID) match {
-                    case Some(queue) =>
-                      queue.offer(WebSocketFrame.Text(message)).void
-                    case None =>
-                      IO.println(s"Message queue not found for player $playerID")
-                  }
-                }
+          messagesRef.get.flatMap { messageMap =>
+            messageMap.get(playerID) match {
+              case Some(queue) =>
+                queue.offer(WebSocketFrame.Text(message)).void
+              case None =>
+                IO.println(s"Message queue not found for player $playerID")
+            }
+          }
         }
 
         val game = Game(5, broadcastMessage, sendMessage)
@@ -79,10 +74,8 @@ object Lobby extends IOApp {
 
 
               for {
-                uid <- IO.randomUUID
                 q   <- Queue.unbounded[IO, WebSocketFrame]
                 _   <- messagesRef.update(map => map + (name -> q))
-                _   <- playersRef.update(map => map + (name -> uid))
                 recQ <- Queue.unbounded[IO, String]
                 _ <- game.joinGame(name, recQ)
                 w <- wsb.build(
@@ -92,17 +85,11 @@ object Lobby extends IOApp {
                   send = Stream.repeatEval(q.take)
                     .merge(Stream.awakeEvery[IO](5.seconds)
                       .map(_ => WebSocketFrame.Text(colorSystemMessage(s"Waiting for players...")))
-                      .interruptWhen(Stream.repeatEval(playersRef.get.map(_.size >= 5)))
-                    )
-                  )
+                      .interruptWhen(Stream.repeatEval(messagesRef.get.map(map =>
+                        map.size >= 5)))
+                  )).onCancel(game.lostPlayer(name) *> messagesRef.update(_ - name))
 
               } yield w
-
-            case GET -> Root / "start" =>
-              for {
-                w        <- game.initialize()
-                response <- Accepted()
-              } yield response
 
           }
           .orNotFound
@@ -111,7 +98,6 @@ object Lobby extends IOApp {
     }
   }
 
-  // Run the lobby server
   override def run(args: List[String]): IO[ExitCode] =
     httpApp.flatMap {
       EmberServerBuilder

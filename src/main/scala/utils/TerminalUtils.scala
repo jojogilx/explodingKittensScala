@@ -1,5 +1,7 @@
 package utils
 
+import players.Player
+
 import scala.language.implicitConversions
 
 object TerminalUtils {
@@ -43,7 +45,15 @@ object TerminalUtils {
 
 
   private val SystemMessageColor = CyanText
+  private val ErrorColor = RedText
 
 
-  def colorSystemMessage(message: String): String = s"$SystemMessageColor$message$ResetText"
+  def colorSystemMessage(message: String): String = colorMessage(SystemMessageColor,message)
+  def colorMessage(color: String, message: String): String = s"$color$message$ResetText"
+  def colorPlayerMessage(player: Player, message: String): String = s"${player.color}${player.playerID}$ResetText$message"
+
+  def colorErrorMessage(error: String): String = colorMessage(ErrorColor, error)
+
+  def diedMessage(player: Player): String = s"\n$SkullEmojiUnicode " +
+    s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
 }
