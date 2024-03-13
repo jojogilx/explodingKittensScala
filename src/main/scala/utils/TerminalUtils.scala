@@ -47,6 +47,9 @@ object TerminalUtils {
   private val SystemMessageColor = CyanText
   private val ErrorColor = RedText
 
+  val PlayerColors: List[String] =
+    List(RedText, BlueText, YellowText, GreenText, MagentaText)
+
 
   def colorSystemMessage(message: String): String = colorMessage(SystemMessageColor,message)
   def colorMessage(color: String, message: String): String = s"$color$message$ResetText"
@@ -56,4 +59,8 @@ object TerminalUtils {
 
   def diedMessage(player: Player): String = s"\n$SkullEmojiUnicode " +
     s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
+
+
+  val TurnSeparator: String = "-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
+
 }

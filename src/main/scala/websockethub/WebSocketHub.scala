@@ -12,6 +12,7 @@ trait WebSocketHub {
   def sendToPlayer(player: PlayerID, message: Message): IO[Unit]
 
   def sendToGame(messageFrame: WebSocketFrame): IO[Unit]
+  def getGameInput: IO[String]
 
   def broadcast(message: String): IO[Unit]
 
@@ -57,6 +58,8 @@ object WebSocketHub {
 
     }
 
+    override def getGameInput: IO[String] =
+      systemQueue.take.map({case WebSocketFrame.Text(string,_) => string})
   }
 }
 

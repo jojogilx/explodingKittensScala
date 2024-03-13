@@ -99,9 +99,19 @@ case class Deck(private val cards: List[Card]) {
     * @return
     *   a tuple with a list of the first N cards and the remaining list of cards
     */
-  def getFirstN(n: Int): (List[Card], List[Card]) = {
-    val (before, after) = cards.splitAt(n)
-    (before, after)
+  def getFirstN(n: Int): List[Card] = {
+    val (before, _) = cards.splitAt(n)
+    before
+  }
+  def removeFirstN(n: Int): List[Card] = {
+    val (_, after) = cards.splitAt(n)
+   after
+  }
+
+  def alterTheFuture3X(order: String): Deck = {
+    val cardsNew  = order.map(_.toString.toInt - 1).map(getFirstN(3)).toList
+    val remainingDeck = removeFirstN(3)
+    Deck(cardsNew ++ remainingDeck)
   }
 
   /** Creates a new deck with all Exploding Kittens on the top
@@ -118,9 +128,8 @@ case class Deck(private val cards: List[Card]) {
     * @return
     *   Option of tuple of the remaining deck and the card drawn
     */
-  def draw: Option[(Deck, Card)] = cards match {
-    case Nil             => None
-    case card :: newDeck => Some(Deck(newDeck), card)
+  def draw: (Deck, Card) = cards match {
+    case card :: newDeck => (Deck(newDeck), card)
   }
 
   /** Creates a new deck with a card inserted at given index
