@@ -33,7 +33,7 @@ object Lobby extends IOApp {
 
             case GET -> Root / "join" / playerID =>
               for {
-                q <- Queue.unbounded[IO, WebSocketFrame.Text]
+                q <- Queue.bounded[IO, WebSocketFrame.Text](1)
                 _ <- webSocketHub.connect(playerID, q)
                 _ <- game.joinGame(playerID)
                 w <- wsb

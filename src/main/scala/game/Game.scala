@@ -17,6 +17,7 @@ case class Game(
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State]
 ) {
+  //Cmd  ✔
   def joinGame(player: PlayerID): IO[Unit] = {
     gameStateRef.update { gameState =>
       val newPlayer      = Player(player, PlayerColors(gameState.players.length))
@@ -67,6 +68,8 @@ case class Game(
   // ^^^^manage player turns^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^//
 
   // ----manage win and lose----------------------------------//
+
+  //Cmd ✔
   private def killCurrentPlayer: IO[Unit] =
     gameStateRef.update { gameState =>
       val currentIndex  = gameState.currentPlayerIndex
@@ -88,6 +91,7 @@ case class Game(
 
   // ___________ Deck Operations ______________________________//
 
+  //Cmd ✔
   private def addCardToDiscardDeck(card: Card): IO[Unit] =
     gameStateRef.update { gameState =>
       val newDiscardDeck = gameState.discardDeck.prepend(card)
@@ -304,10 +308,9 @@ case class Game(
   def initialize(): IO[Unit] = {
     for {
       _              <- webSocketHub.broadcast(gameTitleBanner)
-      _              <- webSocketHub.broadcast(colorSystemMessage(s"\r\nInitializing..."))
+      _              <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
       _              <- handCards()
       _              <- setRandomStartingPlayer()
-      _                <- setRandomStartingPlayer()
       _              <- gameLoop()
 
     } yield ()
@@ -315,7 +318,6 @@ case class Game(
 
   private def gameLoop(): IO[Unit] = {
     for {
-      _     <- gameStateRef.get.map(gameState => gameState.players(gameState.currentPlayerIndex))
       _          <- playerTurn
       nextPlayer <- nextPlayer()
     } yield nextPlayer
@@ -332,12 +334,14 @@ case class Game(
       _         <- webSocketHub.broadcast(s"\n$TurnSeparator\n")
       gameState <- gameStateRef.get
       player = gameState.players(gameState.currentPlayerIndex)
+
       _ <- IO.println(s"discard: ${gameState.discardDeck}") //
       _ <- IO.println(s"draw: ${gameState.drawDeck}")       //
+
       _ <- webSocketHub.broadcast(colorPlayerMessage(player, "'s turn"))
       _ <- webSocketHub.sendToPlayer(player.playerID, s"\nYour hand is: \n ${getHandWithIndex(player.playerID)}")
 
-      playOrPass <- askPlayOrPass(player) // Does player want to play a card?
+      playOrPass <- playOrPassPrompt(player) // Does player want to play a card?
       cardOpt <- playOrPass.fold(Option.empty[Card].pure[IO])(_ => askForCard(player.playerID)) // Which card?
       playerSkipped <- cardOpt.fold(false.pure[IO])(card => {
         updateDiscardDeck(_.prepend(card))
@@ -367,7 +371,7 @@ case class Game(
     } yield ()
   }
 
-  private def askPlayOrPass(player: Player): IO[Option[Boolean]] =
+  private def playOrPassPrompt(player: Player): IO[Option[Boolean]] =
     for {
       _      <- webSocketHub.sendToPlayer(player.playerID, s"\n${player.playerID}, do you wish to play a card? (y/n)")
       answer <- IO.readLine.map(_.trim.toLowerCase)
@@ -376,7 +380,7 @@ case class Game(
         case "y" => Some(true).pure[IO]
         case "n" => None.pure[IO]
         case _ =>
-          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> askPlayOrPass(player)
+          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> playOrPassPrompt(player)
       }
     } yield result
 
