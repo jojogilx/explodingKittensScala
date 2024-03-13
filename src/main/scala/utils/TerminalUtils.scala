@@ -36,4 +36,14 @@ object TerminalUtils {
   val SkullEmojiUnicode: String   = "\u2620\uFE0F"
   val CatFaceEmojiUnicode: String = "\uD83D\uDC31"
   val CatBodyEmojiUnicode: String = "\uD83D\uDC08"
+
+  val gameTitleBanner: String = s"$CatFaceEmojiUnicode$CatBodyEmojiUnicode$OrangeText$Bold " +
+    s"EXPLODING$ResetText$Bold KITTENS$ResetText - ${RedText}Scala Edition$ResetText " +
+    s"$BombEmojiUnicode$FireEmojiUnicode\n\n"
+
+
+  private val SystemMessageColor = CyanText
+
+
+  def colorSystemMessage(message: String): String = s"$SystemMessageColor$message$ResetText"
 }

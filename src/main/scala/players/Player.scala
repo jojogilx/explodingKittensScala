@@ -1,6 +1,8 @@
 package players
 
 import card._
+import cats.effect.IO
+import cats.effect.std.Queue
 import cats.implicits.catsSyntaxOptionId
 import players.Player._
 
@@ -11,7 +13,7 @@ object Player {
   //see if smt should be here
 }
 
-case class Player(playerID: PlayerID) {
+case class Player(playerID: PlayerID, receiveQueue: Queue[IO, String]) {
   private var cards = List.empty[Card] //todo: remove var
 
   /**
@@ -75,6 +77,12 @@ case class Player(playerID: PlayerID) {
     cards.zipWithIndex.map {
       case (card, i) => s"${i + 1}. $card   "
     }.mkString
+  }
+
+  def sendMessage(message: String): Unit = {
+    for {
+     _ <- receiveQueue.offer(message)
+    } yield ()
   }
 
 }
