@@ -7,7 +7,7 @@ import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
 
 trait WebSocketHub {
-  private type Message = String
+  type Message = String
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame.Text]): IO[Unit]
 
   def sendToPlayer(player: PlayerID, message: Message): IO[Unit]

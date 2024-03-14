@@ -1,4 +1,4 @@
-package gamestate
+/*package gamestate
 
 import card.{Card, Deck}
 import cats.effect.IO
@@ -109,3 +109,4 @@ object StateManager {
 
     }
 }
+*/
