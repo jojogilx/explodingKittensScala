@@ -35,7 +35,7 @@ case class Game(
 
         (gameState.copy(currentPlayerIndex = index), gameState.players(index))
       }
-      .flatMap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting"))) *> stateManager.tell(
+      .flatMap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting\n"))) *> stateManager.tell(
       SetRandomPlayerTurn()
     )
 
@@ -123,7 +123,7 @@ case class Game(
     } yield card
 
   private def switchPiles2(): IO[Unit] =
-    webSocketHub.broadcast(colorSystemMessage(s"switching piles")) *>
+    webSocketHub.broadcast(colorSystemMessage(s"Switching piles...\n")) *>
       gameStateRef.update { gameState =>
         val draw = Deck.initShuffledFromDiscardPile2(gameState.drawDeck, gameState.discardDeck)
         gameState.copy(drawDeck = draw, discardDeck = Deck(List.empty))
@@ -393,7 +393,6 @@ case class Game(
 
         case SwapTopAndBottom =>
           updateDrawDeck(_.swapTopAndBottom) *> false.pure[IO]
-          false.pure[IO]
 
         case Attack2X =>
           for {

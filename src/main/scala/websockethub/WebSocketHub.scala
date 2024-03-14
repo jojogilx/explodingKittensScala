@@ -38,7 +38,8 @@ object WebSocketHub {
       stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
           case Some(queue) =>
-            queue.offer(WebSocketFrame.Text(message)).void
+            queue.offer(WebSocketFrame.Text(message)) *>
+              {if(message.contains("\n")) queue.offer(WebSocketFrame.Text(" ")).void else IO.unit}
           case None =>
             IO.println(s"Message queue not found for player $playerID")
         }
@@ -49,8 +50,8 @@ object WebSocketHub {
       println(message)
       stateRef.get.flatMap(map =>
         map.values.toList.traverse { queue =>
-          val a = queue.offer(WebSocketFrame.Text(message))
-          a
+          queue.offer(WebSocketFrame.Text(message)) *>
+            {if(message.contains("\n")) queue.offer(WebSocketFrame.Text(" ")).void else IO.unit}
         }.void
       )
     }
