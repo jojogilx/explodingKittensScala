@@ -21,7 +21,7 @@ object Lobby extends IOApp {
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
       webSocketHub <- WebSocketHub.of
-      game         <- Game.create(2, webSocketHub)
+      game         <- Game.create(5, webSocketHub)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
 

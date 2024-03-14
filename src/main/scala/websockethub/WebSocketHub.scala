@@ -66,7 +66,7 @@ object WebSocketHub {
     }
 
     override def getGameInput: IO[String] =
-      systemQueue.take
+      systemQueue.take.map(_.replaceAll("\n","").trim)
   }
 }
 

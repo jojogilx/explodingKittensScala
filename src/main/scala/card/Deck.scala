@@ -36,16 +36,6 @@ object Deck {
     Deck(cards).shuffled
   }
 
-  /** Creates a new deck from another deck, shuffled
-    * @param discardPile
-    *   \- original deck
-    * @return
-    *   the new shuffled deck
-    */
-  def initShuffledFromDiscardPile(discardPile: Deck): Deck = {
-    Deck(discardPile.cards).shuffled
-  }
-
   /** Creates a new deck from 2 decks, adding the cards and shuffling them
     * @param drawPile
     *   \- original deck 1
@@ -103,14 +93,14 @@ case class Deck(private val cards: List[Card]) {
     val (before, _) = cards.splitAt(n)
     before
   }
-  def removeFirstN(n: Int): List[Card] = {
-    val (_, after) = cards.splitAt(n)
+  private def removeFirst3(): List[Card] = {
+    val (_, after) = cards.splitAt(3)
    after
   }
 
   def alterTheFuture3X(order: String): Deck = {
     val cardsNew  = order.map(_.toString.toInt - 1).map(getFirstN(3)).toList
-    val remainingDeck = removeFirstN(3)
+    val remainingDeck = removeFirst3()
     Deck(cardsNew ++ remainingDeck)
   }
 
