@@ -34,9 +34,9 @@ object Lobby extends IOApp {
             case GET -> Root / "join" / playerID =>
               for {
                 q <- Queue.bounded[IO, WebSocketFrame.Text](1)
-                _ <- webSocketHub.connect(playerID, q)
+                _ <- webSocketHub.connect(playerID, q, game.playerDisconnected(playerID))
                 _ <- game.joinGame(playerID)
-                w <- wsb
+                w <- wsb.withOnClose(webSocketHub.disconnectPlayer(playerID))
                   .build(
                     receive = _.filter({
                       case WebSocketFrame.Text(_) => true

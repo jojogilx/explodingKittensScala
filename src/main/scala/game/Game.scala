@@ -27,6 +27,10 @@ case class Game(
       gameState.copy(players = updatedPlayers)
     } *> webSocketHub.broadcast(colorSystemMessage(s"$player joined the game")) *> stateManager.tell(AddPlayer(player))
 
+
+  def playerDisconnected(playerID: PlayerID): IO[Unit] =
+    IO.println(s"DISC: $playerID")
+
   // -----manage player turns -------------------------------//
   private def setRandomStartingPlayer(): IO[Unit] =
     gameStateRef
