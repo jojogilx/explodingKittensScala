@@ -25,4 +25,4 @@ object Command {
 }
 
 
-final case class Envelope(command: Command, effect: IO[Unit], reply: Option[Deferred[IO, State]])
+final case class Envelope(command: Command, reply: Option[Deferred[IO, State]])

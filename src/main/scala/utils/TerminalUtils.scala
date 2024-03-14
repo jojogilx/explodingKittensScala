@@ -61,6 +61,6 @@ object TerminalUtils {
     s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
 
 
-  val TurnSeparator: String = "-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
+  val TurnSeparator: String = "-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
 
 }

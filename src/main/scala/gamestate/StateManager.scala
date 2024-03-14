@@ -1,18 +1,20 @@
-/*package gamestate
+package gamestate
 
-import card.{Card, Deck}
+import card._
 import cats.effect.IO
 import cats.effect.std.Queue
-import cats.implicits.{toFoldableOps, toFunctorOps}
+import cats.implicits._
 import gamestate.Command._
 import players.Player
-import utils.TerminalUtils.{PlayerColors, colorPlayerMessage, colorSystemMessage, diedMessage}
+import utils.TerminalUtils._
 import websockethub.WebSocketHub
 
-trait StateManager {
-  def tell(envelope: Envelope): IO[Unit]
+import scala.util.Random
 
-  def ask(envelope: Envelope): IO[State]
+trait StateManager {
+  def tell(command: Command): IO[Unit]
+
+  def ask(command: Command): IO[State]
 
 }
 
@@ -24,6 +26,10 @@ object StateManager {
         .fromQueueNoneTerminated[IO, Envelope](commandQueue)
         .evalScan(initialState) { (state, envelope) =>
           {
+             def updateDiscardDeck(function: Deck => Deck): State =
+                state.copy(discardDeck = function(state.discardDeck))
+
+
 
             def switchPiles(): State = {
               val draw = Deck.initShuffledFromDiscardPile2(state.drawDeck, state.discardDeck)
@@ -32,39 +38,40 @@ object StateManager {
               state.copy(drawDeck = draw, discardDeck = Deck(List.empty))
             }
 
-            // validate
-            // updateState
-            // effect
+            val (newState, effect) = envelope.command match {
+              case SetRandomPlayerTurn() =>
+                val index = Random.nextInt(state.players.length)
+                (state.copy(currentPlayerIndex = index),
+                  webSocketHub.broadcast(colorPlayerMessage(state.players(index), "'s starting")))
 
-            val newState = envelope.command match {
+
               case AddPlayer(player) =>
                 val newPlayer      = Player(player, PlayerColors(state.players.length))
                 val updatedPlayers = newPlayer :: state.players
-                webSocketHub.broadcast(colorSystemMessage(s"$player joined the game"))
-                state.copy(players = updatedPlayers)
+
+                (state.copy(players = updatedPlayers), webSocketHub.broadcast(colorSystemMessage(s"$player joined the game")))
 
               case RemovePlayer(player) =>
                 val updatedPlayers = state.players.filterNot(_.playerID == player)
-                webSocketHub.broadcast(colorSystemMessage(s"$player left the game"))
-                state.copy(players = updatedPlayers)
+                (state.copy(players = updatedPlayers),webSocketHub.broadcast(colorSystemMessage(s"$player left the game")))
 
               case KillCurrentPlayer() =>
                 val currentIndex  = state.currentPlayerIndex
                 val (left, right) = state.players.splitAt(currentIndex)
                 val newPlayers    = left ::: right.drop(1)
 
-                webSocketHub.broadcast(diedMessage(right.head)) // > avoid head
-                state.copy(players = newPlayers)
+
+                (state.copy(players = newPlayers),webSocketHub.broadcast(diedMessage(right.head)) )// > avoid head
 
               case PlayCard(playerID, index) =>
                 val card          = state.playersHands(playerID)(index)
                 val (left, right) = state.playersHands(playerID).splitAt(index)
                 val newCards      = left ::: right.drop(1)
 
-                state.copy(
+                (state.copy(
                   discardDeck = state.discardDeck.prepend(card),
                   playersHands = state.playersHands + (playerID -> newCards)
-                )
+                ), IO.unit)
 
               case DrawCard(playerID) =>
                 val newState =
@@ -76,14 +83,15 @@ object StateManager {
                 val (deck, card) = newState.drawDeck.draw
                 val cards          = state.playersHands(playerID)
 
-                newState.copy(
+                (newState.copy(
                   drawDeck = deck,
-                  playersHands = newState.playersHands + (playerID -> card::cards)
-                )
+                  playersHands = newState.playersHands + (playerID -> (card::cards))
+                ), IO.unit)
 
             }
 
             for {
+              _ <- effect
               _ <- envelope.reply.traverse_ { deferred =>
                 deferred.complete(newState)
               }
@@ -94,19 +102,19 @@ object StateManager {
         .drain
         .start
     } yield new StateManager {
-      def tell(envelope: Envelope): IO[Unit] = {
+      def tell(command: Command): IO[Unit] = {
+        val envelope = Envelope(command,None)
         commandQueue.offer(Some(envelope))
       }
 
-      def ask(envelope: Envelope): IO[State] = {
+      def ask(command: Command): IO[State] = {
         for {
           deferred <- IO.deferred[State]
-          newEnv = envelope.copy(reply = Some(deferred))
-          _     <- commandQueue.offer(Some(newEnv))
+          envelope = Envelope(command,Some(deferred))
+          _     <- commandQueue.offer(Some(envelope))
           event <- deferred.get
         } yield event
       }
 
     }
 }
-*/
