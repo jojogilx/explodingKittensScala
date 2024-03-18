@@ -5,6 +5,7 @@ import cats.effect.std.Queue
 import cats.implicits.toTraverseOps
 import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
+import fs2._
 
 trait WebSocketHub {
   type Message = String
@@ -12,8 +13,8 @@ trait WebSocketHub {
 
   def sendToPlayer(player: PlayerID, message: Message): IO[Unit]
 
-  def sendToGame(message: Message): IO[Unit]
-  def getGameInput: IO[String]
+  def sendToGame(playerID: PlayerID, message: Message): IO[Unit]
+  def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
 
@@ -23,7 +24,7 @@ trait WebSocketHub {
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
     stateRef <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame.Text], IO[Unit])]](Map.empty)
-    systemQueue <- Queue.unbounded[IO, String]
+    systemQueue <- Queue.bounded[IO, (PlayerID, String)](1)
   } yield new WebSocketHub {
 
 
@@ -57,8 +58,8 @@ object WebSocketHub {
       )
     }
 
-    override def sendToGame(message: String): IO[Unit] = {
-      systemQueue.offer(message)
+    override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
+      systemQueue.offer((playerID,message))
     }
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
@@ -67,8 +68,11 @@ object WebSocketHub {
 
     }
 
-    override def getGameInput: IO[String] =
-      systemQueue.take.map(_.replaceAll("\n","").trim)
+    override def getGameInput(playerID: PlayerID): IO[String] =
+      Stream.repeatEval(systemQueue.take)
+        .collectFirst({case (id,message) if id == playerID => message})
+        .map(_.replaceAll("\n","").trim)
+        .compile.lastOrError
   }
 }
 

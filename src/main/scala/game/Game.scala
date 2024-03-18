@@ -237,7 +237,7 @@ case class Game(
           }}"
       )
       _      <- webSocketHub.sendToPlayer(playerID, "Insert new card order (e.g. 213) >>")
-      string <- webSocketHub.getGameInput
+      string <- webSocketHub.getGameInput(playerID)
       valid <- string.toSet match {
         case set if set == Set('1', '2', '3') => string.pure[IO]
         case s =>
@@ -249,17 +249,17 @@ case class Game(
     } yield valid
   }
 
-  private def buryCard(player: Player, card: Card): IO[Unit] = {
+  private def buryCard(playerID: PlayerID, card: Card): IO[Unit] = {
     for {
       deckLength <- gameStateRef.get.map(_.drawDeck.length)
-      _          <- webSocketHub.sendToPlayer(player.playerID, "Where do you want to bury this card?")
-      _          <- webSocketHub.sendToPlayer(player.playerID, s"Insert a number between 1 and $deckLength >> ")
-      string     <- webSocketHub.getGameInput.map(_.trim.toIntOption)
+      _          <- webSocketHub.sendToPlayer(playerID, "Where do you want to bury this card?")
+      _          <- webSocketHub.sendToPlayer(playerID, s"Insert a number between 1 and $deckLength >> ")
+      string     <- webSocketHub.getGameInput(playerID).map(_.trim.toIntOption)
       _ <- string match {
         case Some(index) if (0 until deckLength).contains(index - 1) =>
           updateDrawDeck(_.insertAt(index - 1, card))
         case _ =>
-          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> buryCard(player, card)
+          webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid input")) *> buryCard(playerID, card)
       }
 
     } yield ()
@@ -277,7 +277,7 @@ case class Game(
           }}"
       )
       _      <- webSocketHub.sendToPlayer(player.playerID, "Insert index >> ")
-      string <- webSocketHub.getGameInput.map(_.toIntOption)
+      string <- webSocketHub.getGameInput(player.playerID).map(_.toIntOption)
       valid <- string match {
         case Some(value) =>
           value match {
@@ -368,7 +368,7 @@ case class Game(
       playerHand = state.playersHands(player.playerID)
 
       _ <- webSocketHub.sendToPlayer(player.playerID, "Enter the index of the card you want to play (n to Pass or index -h to print card description) >> ")
-      answer <- webSocketHub.getGameInput.map(_.trim.toLowerCase)
+      answer <- webSocketHub.getGameInput(player.playerID).map(_.trim.toLowerCase)
 
       result <- answer match {
         case "n" => None.pure[IO]
@@ -455,7 +455,7 @@ case class Game(
         case Bury =>
           for {
             card <- drawCard()
-            _    <- buryCard(player, card)
+            _    <- buryCard(player.playerID, card)
           } yield true
 
         case Reverse =>

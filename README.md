@@ -19,11 +19,11 @@
 ## 3rd milestone:
 > Forbid players from joining with the same ID ✔
 > 
-> System is accepting input from all players fix
+> System is accepting input from all players fix ✔
 > 
-> Players randomly disconnecting fix
+> Players disconnecting timeout fix
 > 
-> game being initialized twice?
+> game being initialized twice? ✔
 >
 > Rooms each hosting their game ✔
 > 
