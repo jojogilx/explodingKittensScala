@@ -58,7 +58,6 @@ object WebSocketHub {
     }
 
     override def sendToGame(message: String): IO[Unit] = {
-      println(message)
       systemQueue.offer(message)
     }
 

@@ -17,11 +17,13 @@
 > Fix bug causing the last player to join not communicating properly ✔
 
 ## 3rd milestone:
-> Forbid players from joining with the same ID
->
-> Rooms each hosting their game
+> Forbid players from joining with the same ID ✔
 > 
-> Players create and join a room by id for 2-5 # players
+> System is accepting input from all players fix
+>
+> Rooms each hosting their game ✔
+> 
+> Players create and join a room by id for 2-5 # players ✔
 >
 > Include card description with help command
 
