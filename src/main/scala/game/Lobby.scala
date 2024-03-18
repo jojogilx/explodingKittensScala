@@ -75,7 +75,7 @@ object Lobby extends IOApp {
       EmberServerBuilder
         .default[IO]
         .withHost(ipv4"127.0.0.1")
-        .withPort(port"8082")
+        .withPort(port"8080")
         .withHttpWebSocketApp(_)
         .build
         .useForever

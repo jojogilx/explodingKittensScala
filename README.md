@@ -3,7 +3,7 @@
 > 
 > Cards implemented minus Nope, Tacocat and Feral Cat ✔
 
-## 2nd milestone:
+#### 2nd milestone:  ✔
 > Have multiplayer server hosting a single game ✔
 > 
 > Join player, start game ✔
@@ -12,22 +12,24 @@
 > 
 > Send output to players ✔
 > 
-> Handle connections lost 
+> Handle connections lost  ✔
 > 
 > Fix bug causing the last player to join not communicating properly ✔
 >
 
 
-### 3rd milestone:
+## 3rd milestone:
+> Forbid players from joining with the same ID
+>
 > Rooms each hosting their game
 > 
 > Players create and join a room by id for 2-5 # players
 >
-> Better code
-> 
 > Include card description with help command
 
 ### For last milestone:
+> Better code
+>
 > Nope card implementation and testing
 > 
 > Multiple cards being played

@@ -22,9 +22,10 @@ trait WebSocketHub {
 
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
-    stateRef <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame.Text], PlayerID => IO[Unit])]](Map.empty)
+    stateRef <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame.Text], IO[Unit])]](Map.empty)
     systemQueue <- Queue.unbounded[IO, String]
   } yield new WebSocketHub {
+
 
     override def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame.Text], onDisconnected: IO[Unit]): IO[Unit] = {
       println(s"$player connected")
@@ -62,7 +63,7 @@ object WebSocketHub {
     }
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
-      IO.println(s"$playerID disconnected") *> stateRef.get.map(_.get(playerID).fold(IO.unit){ case (_,onDisc) => onDisc(playerID)}
+      IO.println(s"$playerID disconnected from socket") *> stateRef.get.flatMap(_.get(playerID).fold(IO.unit){ case (_,onDisc) => onDisc}
       ) *> stateRef.update(_ - playerID)
 
     }
