@@ -20,7 +20,7 @@ case class Game(
     stateManager: StateManager
 ) {
   // Cmd  ✔
-  def joinGame(player: PlayerID): IO[Unit] = //todo, forbid join with same id
+  def joinGame(player: PlayerID): IO[Unit] =
     (  for {
       deferred <- Deferred[IO, Boolean]
       _ <- gameStateRef.update { gameState =>

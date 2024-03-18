@@ -2,6 +2,7 @@ package game
 
 import cats.effect._
 import cats.effect.std.Queue
+import cats.implicits.{toFoldableOps, toTraverseOps}
 import com.comcast.ip4s.IpLiteralSyntax
 import fs2._
 import org.http4s._
@@ -21,50 +22,28 @@ object Lobby extends IOApp {
   // join room
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
-     // webSocketHub <- WebSocketHub.of
-   //   game         <- Game.create(5, webSocketHub)
-      roomsRef     <- Ref.of[IO, Map[String, Room]](Map.empty)
+      // webSocketHub <- WebSocketHub.of
+      //   game         <- Game.create(5, webSocketHub)
+      roomsRef <- Ref.of[IO, Map[String, Room]](Map.empty)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
 
         HttpRoutes
           .of[IO] {
-            // print current room and list of players
-            // command createRoom name > creates room
-            // command join roomName > sends get to /room if there is on
-/*
-            case GET -> Root / "join" / playerID =>
-              for {
-                q <- Queue.bounded[IO, WebSocketFrame.Text](1)
-                _ <- webSocketHub.connect(playerID, q, game.playerDisconnected(playerID))
-                _ <- game.joinGame(playerID)
-                w <- wsb
-                  .withOnClose(webSocketHub.disconnectPlayer(playerID))
-                  .build(
-                    receive = _.filter({
-                      case WebSocketFrame.Text(_) => true
-                      case _                      => false
-                    }).map({ case WebSocketFrame.Text(text, _) =>
-                      text
-                    }).evalMap(webSocketHub.sendToGame),
-                    send = Stream
-                      .repeatEval(q.take)
-                    /*.merge(
-                        Stream
-                          .awakeEvery[IO](5.seconds)
-                          .map(_ => WebSocketFrame.Text(colorSystemMessage(s"Waiting for players...")))
-                          .interruptWhen(Stream.repeatEval(messagesRef.get.map(map => map.size >= 5)))
-                      )*/
-                  )
-                  .onCancel(webSocketHub.disconnectPlayer(playerID))
 
-              } yield w
-
-            case GET -> Root / "start" =>
+            case GET -> Root / "lobby" =>
               for {
-                _   <- game.initialize()
-                res <- Accepted()
-              } yield res*/
+                map <- roomsRef.get
+                _   <- IO.println(map)
+                strings <- map.values.toList.zipWithIndex.foldLeft(IO.pure("")) { case (accIO, (room, i)) =>
+                  for {
+                    acc <- accIO
+                    roomString <- room.getString
+                  } yield acc + s"${i + 1}.  $roomString\n"
+                }
+                response <- Ok(strings)
+              } yield response
+
 
             case GET -> Root / "create" / roomName / nPlayers =>
               for {
@@ -90,7 +69,7 @@ object Lobby extends IOApp {
             case GET -> Root / "join" / roomName / playerID =>
               for {
                 rooms <- roomsRef.get.map(_.keys.toList)
-                q <- Queue.bounded[IO, WebSocketFrame.Text](1)
+                q     <- Queue.bounded[IO, WebSocketFrame.Text](1)
                 res <-
                   if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
                   else
@@ -99,18 +78,20 @@ object Lobby extends IOApp {
                         .get(roomName.trim)
                         .fold(BadRequest("error"))(room =>
                           room.join(playerID.trim, q).flatMap {
-                            case Left(value)  => BadRequest(value)
-                            case Right(_) => wsb
-                              .withOnClose(room.leave(playerID.trim))
-                              .build(
-                                receive = _.filter({
-                                  case WebSocketFrame.Text(_) => true
-                                  case _                      => false
-                                }).map({ case WebSocketFrame.Text(text, _) =>
-                                  text
-                                }).evalMap(room.sendToGame),
-                                send = Stream
-                                  .repeatEval(q.take))
+                            case Left(value) => BadRequest(value)
+                            case Right(_) =>
+                              wsb
+                                .withOnClose(room.leave(playerID.trim))
+                                .build(
+                                  receive = _.filter({
+                                    case WebSocketFrame.Text(_) => true
+                                    case _                      => false
+                                  }).map({ case WebSocketFrame.Text(text, _) =>
+                                    text
+                                  }).evalMap(room.sendToGame),
+                                  send = Stream
+                                    .repeatEval(q.take)
+                                )
                           }
                         )
                     })

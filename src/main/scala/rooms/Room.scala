@@ -6,6 +6,7 @@ import cats.implicits.catsSyntaxApplicativeId
 import game.Game
 import org.http4s.websocket.WebSocketFrame
 import players.Player._
+import utils.TerminalUtils.{GreenText, RedText, ResetText}
 import websockethub.WebSocketHub
 
 case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState]) {
@@ -37,6 +38,13 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
   def sendToGame(message: String): IO[Unit] = {
     webSocketHub.sendToGame(message)
   }
+
+  def getString: IO[String] = for {
+    room <- stateRef.get
+    color = if (room.started || room.players.length == nPlayers) RedText else GreenText
+
+  } yield s"$color ${name},  Players(${room.players.length}/$nPlayers): ${room.players}$ResetText\n"
+
 
 }
 
