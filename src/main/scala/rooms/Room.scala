@@ -2,7 +2,6 @@ package rooms
 
 import cats.effect.{IO, Ref}
 import game.Game
-import players.Player
 import players.Player._
 import websockethub.WebSocketHub
 
@@ -31,7 +30,7 @@ object Room {
     for {
       webSocketHub <- WebSocketHub.of
       game         <- Game.create(nPlayers, webSocketHub)
-      state <- Ref[IO, RoomState].of(RoomState(List.empty,started = false))
+      state <- Ref.of[IO, RoomState](RoomState(List.empty,started = false))
     } yield new Room(game, name,nPlayers, state)
   }
 }

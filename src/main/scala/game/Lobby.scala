@@ -5,10 +5,11 @@ import cats.effect.std.Queue
 import com.comcast.ip4s.IpLiteralSyntax
 import fs2._
 import org.http4s._
-import org.http4s.dsl.io._
+import org.http4s.dsl.io.{BadRequest, _}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
+import rooms.Room
 import utils.TerminalUtils._
 import websockethub.WebSocketHub
 
@@ -22,6 +23,7 @@ object Lobby extends IOApp {
     for {
       webSocketHub <- WebSocketHub.of
       game         <- Game.create(5, webSocketHub)
+      roomsRef <- Ref.of[IO, Map[String, Room]](Map.empty)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
 
@@ -62,6 +64,32 @@ object Lobby extends IOApp {
                 _   <- game.initialize()
                 res <- Accepted()
               } yield res
+
+
+            case GET -> Root / "create" / roomName / nPlayers =>
+              for {
+                rooms <- roomsRef.get.map(_.keys.toList)
+                res <- if(rooms.contains(roomName.trim)) BadRequest("Room already exists")
+                else {
+                  nPlayers.toIntOption match {
+                    case Some(value) if 2 to 5 contains value =>
+                      for {
+                        room <- Room.create(value, roomName.trim)
+                        _ <- roomsRef.update(rooms => rooms + (roomName.trim -> room))
+                        res <- Accepted ("Room created")
+                      } yield res
+
+                    case _ => BadRequest("Number of players invalid (2-5 players only)")
+                  }
+
+                }
+
+              } yield res
+
+            case GET -> Root / "joinRoom" / roomName / playerID => ???
+
+            case GET -> Root / "start" / roomName => ???
+
 
           }
           .orNotFound
