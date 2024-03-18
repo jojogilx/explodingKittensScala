@@ -20,12 +20,16 @@
 > Forbid players from joining with the same ID ✔
 > 
 > System is accepting input from all players fix
+> 
+> Players randomly disconnecting fix
+> 
+> game being initialized twice?
 >
 > Rooms each hosting their game ✔
 > 
 > Players create and join a room by id for 2-5 # players ✔
 >
-> Include card description with help command
+> Include card description with help command ✔
 
 ### For last milestone:
 > Better code

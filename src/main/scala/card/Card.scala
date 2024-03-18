@@ -9,6 +9,7 @@ sealed trait Card {
   val textColor: String
 
   override def toString: String = s"$textColor $emoji $title $emoji $ResetText"
+  def toStringDescription: String = s"$textColor $emoji $title $emoji - $description $ResetText"
 
 }
 
