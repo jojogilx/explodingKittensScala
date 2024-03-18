@@ -15,8 +15,6 @@
 > Handle connections lost  ✔
 > 
 > Fix bug causing the last player to join not communicating properly ✔
->
-
 
 ## 3rd milestone:
 > Forbid players from joining with the same ID
