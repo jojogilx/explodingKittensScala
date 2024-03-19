@@ -5,7 +5,8 @@ import scala.util.Random
 
 object Deck {
 
-  /** Card types' count for nope sauce recipe
+  /**
+   * Card types' count for nope sauce recipe
     */
   private val nopeSauceMap: Int => Map[Card, Int] = nPlayers =>
     Map(
@@ -20,7 +21,7 @@ object Deck {
       TargetedAttack2X -> 2,
       CatomicBomb      -> 1,
       Bury             -> 3,
-      Tacocat          -> 40,
+      Tacocat          -> 4,
       FeralCat         -> 6,
       Reverse          -> 4
     )
