@@ -211,24 +211,25 @@ case class Game(
       gameState.copy(drawDeck = function(gameState.drawDeck))
     }
 
-  /// players hand
+  //------ players hand--------------------------------//
 
   /** Tries to find a defuse in the cards the player is holding
     *
     * @return
-    *   Option of defuse card
+    *   Option of defuse index in the current player's hand
     */
-  private def tryGetDefuse(playerID: PlayerID): IO[Option[Int]] =
+  private def tryFindDefuseIndex(): IO[Option[Int]] =
     gameStateRef.get.map { gameState =>
+      val playerID = gameState.players(gameState.currentPlayerIndex).playerID
       val hand = gameState.playersHands.getOrElse(playerID, List.empty)
       hand.zipWithIndex
         .collectFirst { case (Defuse, i) => i }
     }
 
-  /** Plays the card at given index, removing it from the player's hand and returning the card
+  /** Plays the card at given index, removing it from the player's hand, discarding it and returning the card
     *
     * @param index
-    *   \- the index of the card to play
+    *   the index of the card to play
     * @return
     *   Card played
     */
@@ -387,7 +388,7 @@ case class Game(
                 case ExplodingKitten =>
                   for {
                     _         <- webSocketHub.broadcast(s"${player.playerID} drew $card")
-                    defuseOpt <- tryGetDefuse(player.playerID)
+                    defuseOpt <- tryFindDefuseIndex()
                     _ <- defuseOpt.fold(killCurrentPlayer)(index =>
                       playCard(index) *> webSocketHub.broadcast(s"$Defuse used")
                     )
@@ -618,38 +619,6 @@ case class Game(
     } yield card
   }
 
-  private def stealSpecificCard(fromID: PlayerID, toID: PlayerID): IO[Unit] =
-    webSocketHub.broadcast(s"$toID is stealing a random card from $fromID") *> {
-      gameStateRef
-        .modify { gameState =>
-          val hands = gameState.playersHands
-
-          (hands.get(toID), hands.get(fromID)) match {
-            case (None, _) | (_, None) => (gameState, None)
-            case (Some(from), Some(to)) =>
-              val index = Random.nextInt(from.length)
-              from.get(index) match {
-                case Some(card) =>
-                  val newTo    = to.appended(card)
-                  val newFrom  = from.filterNot(_ == card)
-                  val newHands = hands + (fromID -> newFrom) + (toID -> newTo)
-                  (gameState.copy(playersHands = newHands), Some(card))
-
-                case None => (gameState, None)
-              }
-
-          }
-
-        }
-        .flatMap { optCard =>
-          optCard.fold(webSocketHub.broadcast(s"$toID couldn't steal card from $fromID"))(card =>
-            webSocketHub.broadcast(s"$toID stole a card from $fromID") *> webSocketHub.sendToPlayer(
-              toID,
-              s"Stole $card from $fromID"
-            ) *> webSocketHub.sendToPlayer(fromID, s"$toID stole your $card")
-          )
-        }
-    }
   private def handleCardPlayed(player: Player, ioCard: IO[Card]): IO[Boolean] =
     for {
       card <- ioCard
