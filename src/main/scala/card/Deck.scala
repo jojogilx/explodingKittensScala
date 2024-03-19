@@ -20,7 +20,7 @@ object Deck {
       TargetedAttack2X -> 2,
       CatomicBomb      -> 1,
       Bury             -> 3,
-      Tacocat          -> 4,
+      Tacocat          -> 40,
       FeralCat         -> 6,
       Reverse          -> 4
     )

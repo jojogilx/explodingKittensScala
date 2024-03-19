@@ -35,15 +35,20 @@
 > Better code
 >
 > Nope card implementation and testing ✔
-> 
-> Multiple cards being played
 >
-> Cat cards implementation
-> 
-> Attack stacking and interruption
+> Cat cards implementation ✔
 >
 > Is it possible to notify players if server is down?
+>
+> check if room is buggy after players try to join incorrectly
 > 
-> Nope card being asked at the same time, accept first answer, instead of going through the players 1 by 1
+> players being dealt the same hand fix ✔
 
+
+### Last milestone:
+> Nope card being asked at the same time, accept first answer, instead of going through the players 1 by 1
+> 
+> Multiple cards being played
+> 
+> Attack stacking and interruption
 

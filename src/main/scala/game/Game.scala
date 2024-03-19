@@ -148,12 +148,12 @@ case class Game(
     webSocketHub.broadcast(colorSystemMessage(s"Handing cards...\n")) *> {
       gameStateRef.update { gameState =>
         val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck)
-        val (deck, map) = gameState.players.foldLeft((List.empty[Card], Map.empty[PlayerID, Hand])) {
+        val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
           case ((cards, map), p) =>
-            val (hand, newDrawDeck) = deckWOBombs.splitAt(7)
+            val (hand, newDrawDeck) = cards.splitAt(7)
             val newHand             = hand :+ Defuse
 
-            (cards ++ newDrawDeck, map + (p.playerID -> newHand))
+            (newDrawDeck, map + (p.playerID -> newHand))
         }
 
         val newDrawDeck = Deck(deck ++ bombs).shuffled
@@ -365,7 +365,7 @@ case class Game(
 
       _ <- webSocketHub.sendToPlayer(
         player.playerID,
-        "Enter the index of the card you want to play (n to Pass or index -h to print card description) >> "
+        "Enter the index of the card you want to play (n to Pass or index -h to print card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
       )
       answer <- webSocketHub.getGameInput(player.playerID)
 
@@ -390,6 +390,47 @@ case class Game(
                 state
               )
           }
+        case s"${c1},${c2}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined =>
+          {
+            (c1.toInt, c2.toInt).toList match {
+              case list if list.forall(i => {
+                    playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
+                      case Tacocat | FeralCat => true
+                      case _                  => false
+                    })
+                  }) =>
+                list.traverse(i => playCard(i-1)) *> stealFromPlayer(
+                  player.playerID,
+                  state.players,
+                  isRandom = true
+                )
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID,
+                  "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
+                ) *> playOrPassPrompt(player, state)
+            }
+          } *> None.pure[IO]
+        case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
+          {
+            (c1.toInt, c2.toInt, c3.toInt).toList match {
+              case list if list.forall(i => {
+                    playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
+                      case Tacocat | FeralCat => true
+                      case _                  => false
+                    })
+                  }) => list.traverse(i => playCard(i-1)) *> stealFromPlayer(
+                  player.playerID,
+                  state.players,
+                  isRandom = false
+                )
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID,
+                  "Invalid input, play 3 indices of cat cards (e.g.: 1 2 3"
+                ) *> playOrPassPrompt(player, state)
+            }
+          } *> None.pure[IO]
         case x if x.toIntOption.isDefined =>
           x.toInt - 1 match {
             case i if playerHand.indices contains i =>
@@ -417,6 +458,155 @@ case class Game(
       }
     } yield result
 
+  private def stealFromPlayer(playerID: PlayerID, players: List[Player], isRandom: Boolean): IO[Unit] =
+    for {
+      _ <- webSocketHub.sendToPlayer(playerID, "Who do you want to steal from?")
+      _ <- webSocketHub.sendToPlayer(
+        playerID,
+        s"${players.filterNot(_.playerID == playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
+            acc ++ s"${i + 1}. ${p.playerID}       "
+          }}"
+      )
+      _      <- webSocketHub.sendToPlayer(playerID, "Insert index >> ")
+      string <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
+      _ <- string match {
+        case Some(value) =>
+          value match {
+            case x if (1 until players.length) contains x =>
+              if (isRandom)
+                stealCard(fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID, toID = playerID, None)
+              else
+                pickFromPlayer(
+                  fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID,
+                  toID = playerID
+                ).flatMap(card => stealCard(fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID, toID = playerID, Some(card)))
+            case _ =>
+              webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid index")) *> stealFromPlayer(
+                playerID,
+                players,
+                isRandom
+              )
+          }
+        case None =>
+          webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid input")) *> stealFromPlayer(
+            playerID,
+            players,
+            isRandom
+          )
+      }
+    } yield ()
+
+  private def stealCard(fromID: PlayerID, toID: PlayerID, cardOption: Option[Card]): IO[Unit] =
+    webSocketHub.broadcast(s"$toID is stealing a card from $fromID") *> {
+      gameStateRef
+        .modify { gameState =>
+          val hands = gameState.playersHands
+
+          (hands.get(toID), hands.get(fromID)) match {
+            case (_, None) => (gameState, None)
+            case (Some(from), Some(to)) =>
+              val index = cardOption.fold({
+                println("here")
+                Random.nextInt(from.length)}
+              )(card => from.indexOf(card))
+
+              println(index)
+              from.get(index) match {
+                case Some(card) =>
+                  val newTo    = to.appended(card)
+                  val newFrom  = from.filterNot(_ == card)
+                  val newHands = hands + (fromID -> newFrom) + (toID -> newTo)
+                  (gameState.copy(playersHands = newHands), Some(card))
+
+                case None => (gameState, None)
+              }
+
+          }
+
+        }
+        .flatMap { optCard =>
+          optCard.fold(webSocketHub.broadcast(s"$toID couldn't steal card from $fromID"))(card =>
+            webSocketHub.broadcast(s"$toID stole a card from $fromID") *> webSocketHub.sendToPlayer(
+              toID,
+              s"Stole $card from $fromID"
+            ) *> webSocketHub.sendToPlayer(fromID, s"$toID stole your $card")
+          )
+        }
+    }
+
+  private def pickFromPlayer(fromID: PlayerID, toID: PlayerID): IO[Card] = {
+    val cardsPossible = List[Card](
+      Defuse,
+      Nope,
+      Shuffle,
+      Skip,
+      AlterTheFuture3X,
+      SwapTopAndBottom,
+      Attack2X,
+      TargetedAttack2X,
+      CatomicBomb,
+      Bury,
+      Tacocat,
+      FeralCat,
+      Reverse
+    )
+
+    for {
+      _ <- webSocketHub.sendToPlayer(toID, "What card do you want?")
+      _ <- webSocketHub.sendToPlayer(
+        toID,
+        s"${cardsPossible.zipWithIndex.foldLeft("") { case (acc, (card, i)) =>
+            acc ++ s"${i + 1}. $card       "
+          }}"
+      )
+      _      <- webSocketHub.sendToPlayer(toID, "Insert index >> ")
+      string <- webSocketHub.getGameInput(toID).map(_.toIntOption)
+      card <- string match {
+        case Some(index) =>
+          index match {
+            case i if (1 until cardsPossible.length) contains i =>
+              cardsPossible(i - 1).pure[IO]
+            case _ =>
+              webSocketHub.sendToPlayer(toID, colorErrorMessage("Invalid choice")) *> pickFromPlayer(fromID, toID)
+          }
+        case None =>
+          webSocketHub.sendToPlayer(toID, colorErrorMessage("Invalid input")) *> pickFromPlayer(fromID, toID)
+      }
+    } yield card
+  }
+
+  private def stealSpecificCard(fromID: PlayerID, toID: PlayerID): IO[Unit] =
+    webSocketHub.broadcast(s"$toID is stealing a random card from $fromID") *> {
+      gameStateRef
+        .modify { gameState =>
+          val hands = gameState.playersHands
+
+          (hands.get(toID), hands.get(fromID)) match {
+            case (None, _) | (_, None) => (gameState, None)
+            case (Some(from), Some(to)) =>
+              val index = Random.nextInt(from.length)
+              from.get(index) match {
+                case Some(card) =>
+                  val newTo    = to.appended(card)
+                  val newFrom  = from.filterNot(_ == card)
+                  val newHands = hands + (fromID -> newFrom) + (toID -> newTo)
+                  (gameState.copy(playersHands = newHands), Some(card))
+
+                case None => (gameState, None)
+              }
+
+          }
+
+        }
+        .flatMap { optCard =>
+          optCard.fold(webSocketHub.broadcast(s"$toID couldn't steal card from $fromID"))(card =>
+            webSocketHub.broadcast(s"$toID stole a card from $fromID") *> webSocketHub.sendToPlayer(
+              toID,
+              s"Stole $card from $fromID"
+            ) *> webSocketHub.sendToPlayer(fromID, s"$toID stole your $card")
+          )
+        }
+    }
   private def handleCardPlayed(player: Player, ioCard: IO[Card]): IO[Boolean] =
     for {
       card <- ioCard

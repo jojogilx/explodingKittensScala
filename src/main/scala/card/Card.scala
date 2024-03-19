@@ -94,8 +94,8 @@ case object Bury extends Card {
 }
 
 case object Tacocat extends Card {
-  override val description: String = "This is a cat card and is powerless"
-  /*+" on its own. Play two of the same cats as a pair to steal a random card from another player"*/
+  override val description: String = "This is a cat card and is powerless"+
+  " on its own. Play two of the same cats as a pair to steal a random card from another player or 3 to chose the card you want from them"
   override val title: String     = "Tacocat"
   override val emoji: String     = "\uD83C\uDF2E"
   override val textColor: String = WhiteText
