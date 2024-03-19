@@ -43,10 +43,14 @@
 > check if room is buggy after players try to join incorrectly
 > 
 > players being dealt the same hand fix ✔
+> 
+> Noping an attack breaks game
+> 
+> Nope not being asked to all players
 
 
 ### Last milestone:
-> Nope card being asked at the same time, accept first answer, instead of going through the players 1 by 1
+> Cat cards can be noped
 > 
 > Multiple cards being played
 > 

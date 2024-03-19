@@ -18,19 +18,27 @@ case class Game(
     gameStateRef: Ref[IO, State],
     stateManager: StateManager
 ) {
-  // Cmd  ✔
-  def joinGame(player: PlayerID): IO[Unit] =
+
+  /** Creates a player with PlayerID and joins the game
+   * @param playerID
+   *   id of the player
+   */
+  def joinGame(playerID: PlayerID): IO[Unit] =
     (for {
       deferred <- Deferred[IO, Boolean]
       _ <- gameStateRef.update { gameState =>
-        val disconnectedPlayers = gameState.disconnections + (player -> deferred)
-        val newPlayer           = Player(player, PlayerColors(gameState.players.length))
+        val disconnectedPlayers = gameState.disconnections + (playerID -> deferred)
+        val newPlayer           = Player(playerID, PlayerColors(gameState.players.length))
         val updatedPlayers      = newPlayer :: gameState.players
-        gameState.disconnections + (player -> Deferred)
+        gameState.disconnections + (playerID -> Deferred)
         gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
       }
-    } yield ()) *> webSocketHub.broadcast(colorSystemMessage(s"$player joined the game"))
+    } yield ()) *> webSocketHub.broadcast(colorSystemMessage(s"$playerID joined the game"))
 
+  /** Callback that warns the game the player disconnected
+   * @param playerID
+   *   player disconnected
+   */
   def playerDisconnected(playerID: PlayerID): IO[Unit] =
     IO.println(s"$playerID disconnected from game") *> previousPlayer() *> {
       for {
@@ -45,7 +53,10 @@ case class Game(
     }) *> webSocketHub.broadcast(colorSystemMessage(s"$playerID left"))
 
   // -----manage player turns -------------------------------//
-  private def setRandomStartingPlayer(): IO[Unit] =
+
+  /** Sets the current player index to a random number, bounded by how many players are in-game
+   */
+  private def setRandomPlayerNext(): IO[Unit] =
     gameStateRef
       .modify { gameState =>
         val index = Random.nextInt(gameState.players.length)
@@ -54,6 +65,9 @@ case class Game(
       }
       .flatMap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting\n")))
 
+
+  /** Sets the current player index to the next player
+   */
   private def nextPlayer(): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex + 1 match {
@@ -63,8 +77,10 @@ case class Game(
       println(gameState.currentPlayerIndex)
       println(index)
       gameState.copy(currentPlayerIndex = index)
-    } // *> stateManager.tell(NextPlayerTurn())
+    }
 
+  /** Sets the current player index to the previous player
+   */
   private def previousPlayer(): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex - 1 match {
@@ -73,19 +89,25 @@ case class Game(
       }
 
       gameState.copy(currentPlayerIndex = index)
-    } // *> stateManager.tell(PreviousPlayerTurn())
+    }
 
+
+  /** Sets the current player index to the index of a given player
+   * @param player
+   *   player to set as the next one
+   */
   private def setNextPlayer(player: Player): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.players.indexOf(player)
       gameState.copy(currentPlayerIndex = index)
-    } // *> stateManager.tell(SetPlayerTurn(player.playerID))
+    }
 
   // ^^^^manage player turns^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^//
 
   // ----manage win and lose----------------------------------//
 
-  // Cmd ✔
+  /** Kills the current player, removing them from the game
+   */
   private def killCurrentPlayer: IO[Unit] =
     gameStateRef
       .modify { gameState =>
@@ -103,6 +125,10 @@ case class Game(
       }
       .flatMap(player => webSocketHub.broadcast(diedMessage(player))) // *> stateManager.tell(KillCurrentPlayer())
 
+  /** Checks if the game currently has a winner, meaning there is only one player left
+   * @return
+   *   None if there's no winner or Some(player) that won the game
+   */
   private def getWinner: IO[Option[Player]] =
     gameStateRef.get.map { gameState =>
       gameState.players.length match {
@@ -113,12 +139,18 @@ case class Game(
 
   // ___________ Deck Operations ______________________________//
 
+
+  /**
+   * Draws a card from the draw deck, if no cards are available, piles are switched and shuffled
+   * If the card is a exploding kitten it's discarded, otherwise it's added to the current player's hand
+   * @return the card drawn
+   */
   private def drawCard(): IO[Card] =
     for {
       cards <- gameStateRef.get.map(_.drawDeck.length == 0)
       _     <- if (cards) switchPiles2() else IO.unit
 
-      res <- gameStateRef.modify { gameState =>
+      card <- gameStateRef.modify { gameState =>
         val (deck, card)  = gameState.drawDeck.draw
         val currentPlayer = gameState.players(gameState.currentPlayerIndex).playerID
         val playerHand    = gameState.playersHands(currentPlayer) :+ card
@@ -134,9 +166,12 @@ case class Game(
 
         }
       }
-      card = res
     } yield card
 
+  /**
+   * Adds the remaining cards from the draw deck and the discard deck and shuffles them into a new draw deck.
+   * Clears the discard deck
+   */
   private def switchPiles2(): IO[Unit] =
     webSocketHub.broadcast(colorSystemMessage(s"Switching piles...\n")) *>
       gameStateRef.update { gameState =>
@@ -144,6 +179,10 @@ case class Game(
         gameState.copy(drawDeck = draw, discardDeck = Deck(List.empty))
       }
 
+
+  /**
+   * Removes all bombs and defuses from the deck and deals the players 7 cards + a defuse then adds the bombs back and shuffles the deck
+   */
   private def handCards(): IO[Unit] = {
     webSocketHub.broadcast(colorSystemMessage(s"Handing cards...\n")) *> {
       gameStateRef.update { gameState =>
@@ -157,12 +196,16 @@ case class Game(
         }
 
         val newDrawDeck = Deck(deck ++ bombs).shuffled
-        println(newDrawDeck)
         gameState.copy(drawDeck = newDrawDeck, playersHands = map)
 
       }
     }
   }
+
+  /**
+   * Updates the draw deck according to a given function
+   * @param function function to apply on the deck
+   */
   private def updateDrawDeck(function: Deck => Deck): IO[Unit] =
     gameStateRef.update { gameState =>
       gameState.copy(drawDeck = function(gameState.drawDeck))
@@ -293,7 +336,7 @@ case class Game(
       _ <- webSocketHub.broadcast(gameTitleBanner)
       _ <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
       _ <- handCards()
-      _ <- setRandomStartingPlayer()
+      _ <- setRandomPlayerNext()
       _ <- gameLoop()
     } yield ()
   }
