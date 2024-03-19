@@ -34,13 +34,16 @@
 ## 4th milestone:
 > Better code
 >
-> Nope card implementation and testing
+> Nope card implementation and testing ✔
 > 
 > Multiple cards being played
 >
 > Cat cards implementation
 > 
 > Attack stacking and interruption
-
+>
+> Is it possible to notify players if server is down?
+> 
+> Nope card being asked at the same time, accept first answer, instead of going through the players 1 by 1
 
 

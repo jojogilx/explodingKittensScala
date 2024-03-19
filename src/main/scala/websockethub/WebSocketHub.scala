@@ -12,7 +12,7 @@ trait WebSocketHub {
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame.Text], onDisconnected: IO[Unit]): IO[Unit]
 
   def sendToPlayer(player: PlayerID, message: Message): IO[Unit]
-
+  def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
   def sendToGame(playerID: PlayerID, message: Message): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
 
@@ -58,6 +58,16 @@ object WebSocketHub {
       )
     }
 
+    override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
+      println(message)
+      stateRef.get.flatMap(map =>
+        map.filterNot(_._1 == playerID).values.toList.traverse { case (queue,_) =>
+          queue.offer(WebSocketFrame.Text(message)) *>
+            {if(message.contains("\n")) queue.offer(WebSocketFrame.Text(" ")).void else IO.unit}
+        }.void
+      )
+    }
+
     override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
       systemQueue.offer((playerID,message))
     }
@@ -71,7 +81,7 @@ object WebSocketHub {
     override def getGameInput(playerID: PlayerID): IO[String] =
       Stream.repeatEval(systemQueue.take)
         .collectFirst({case (id,message) if id == playerID => message})
-        .map(_.replaceAll("\n","").trim)
+        .map(_.replaceAll("\n","").trim.toLowerCase)
         .compile.lastOrError
   }
 }
