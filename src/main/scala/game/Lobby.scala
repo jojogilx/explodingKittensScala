@@ -11,6 +11,8 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import rooms.Room
 
+import scala.concurrent.duration.DurationInt
+
 
 object Lobby extends IOApp {
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
@@ -124,6 +126,7 @@ object Lobby extends IOApp {
         .default[IO]
         .withHost(ipv4"127.0.0.1")
         .withPort(port"8080")
+        .withIdleTimeout(5.minutes)
         .withHttpWebSocketApp(_)
         .build
         .useForever

@@ -16,12 +16,12 @@
 > 
 > Fix bug causing the last player to join not communicating properly ✔
 
-## 3rd milestone:
+#### 3rd milestone:  ✔
 > Forbid players from joining with the same ID ✔
 > 
 > System is accepting input from all players fix ✔
 > 
-> Players disconnecting timeout fix
+> Players disconnecting timeout fix ✔
 > 
 > game being initialized twice? ✔
 >
@@ -31,7 +31,7 @@
 >
 > Include card description with help command ✔
 
-### For last milestone:
+## 4th milestone:
 > Better code
 >
 > Nope card implementation and testing
