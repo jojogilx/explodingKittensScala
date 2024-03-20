@@ -40,7 +40,6 @@ object Lobby extends IOApp {
 
 
             // curl GET http://127.0.0.1:8080/create/room1/2
-
             case GET -> Root / "create" / roomName / nPlayers =>
               for {
                 rooms <- roomsRef.get.map(_.keys.toList)
@@ -66,7 +65,7 @@ object Lobby extends IOApp {
             case GET -> Root / "join" / roomName / playerID =>
               for {
                 rooms <- roomsRef.get.map(_.keys.toList)
-                q     <- Queue.bounded[IO, WebSocketFrame.Text](1)
+                q     <- Queue.unbounded[IO, WebSocketFrame.Text]
                 res <-
                   if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
                   else
@@ -88,7 +87,7 @@ object Lobby extends IOApp {
                                   }).evalMap(room.sendToGame(playerID.trim)),
                                   send = Stream
                                     .repeatEval(q.take)
-                                )
+                                ).onCancel(room.leave(playerID.trim))
                           }
                         )
                     })

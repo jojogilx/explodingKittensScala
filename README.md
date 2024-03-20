@@ -32,24 +32,28 @@
 > Include card description with help command ✔
 
 ## 4th milestone:
-> Better code
->
 > Nope card implementation and testing ✔
 >
 > Cat cards implementation ✔
 >
-> Is it possible to notify players if server is down?
->
-> check if room is buggy after players try to join incorrectly
+> check if room is buggy after players try to join incorrectly ✔
 > 
 > players being dealt the same hand fix ✔
 > 
 > Noping an attack breaks game
 > 
 > Nope not being asked to all players
+> 
+> Close players when game ends
+> 
+> Is it possible to notify players if server is down?
+>
+> Nope wait for 3s
 
 
 ### Last milestone:
+> Better code
+>
 > Cat cards can be noped
 > 
 > Multiple cards being played

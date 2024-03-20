@@ -102,8 +102,6 @@ case class Game(
       gameState.copy(currentPlayerIndex = index)
     }
 
-  // ^^^^manage player turns^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^//
-
   // ----manage win and lose----------------------------------//
 
   /** Kills the current player, removing them from the game
@@ -136,6 +134,264 @@ case class Game(
         case _ => None
       }
     }
+
+
+  //-------------game loop---------------------//
+
+  /**
+   * Sends the game title, hands cards, sets a random starting player and starts the game loop
+   */
+  def initialize(): IO[Unit] = {
+    for {
+      _ <- webSocketHub.broadcast(gameTitleBanner)
+      _ <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
+      _ <- handCards()
+      _ <- setRandomPlayerNext()
+      _ <- gameLoop()
+    } yield ()
+  }
+
+
+  /**
+   *The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
+   */
+  private def gameLoop(): IO[Unit] = {
+    val loop = for {
+      _          <- playerTurn()
+      nextPlayer <- nextPlayer()
+    } yield nextPlayer
+
+    loop *> getWinner.flatMap({
+      case Some(player) => webSocketHub.broadcast(colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode"))
+      case None         => gameLoop()
+    })
+  }
+
+
+  //TODO maybe return the next playerID - easier to deal with turns?
+
+  /**
+   * Handles a player turn
+   */
+  private def playerTurn(): IO[Unit] = IO
+    .race( // On current player disconnected - break
+      for {
+        gameState <- gameStateRef.get
+        playerID = gameState.players(gameState.currentPlayerIndex).playerID
+        deferred <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
+        _        <- deferred.get
+      } yield (),
+      for {
+        _ <- webSocketHub.broadcast(s"\n$TurnSeparator\n")
+
+        gameState <- gameStateRef.get
+        player = gameState.players(gameState.currentPlayerIndex)
+
+        _ <- IO.println(s"discard: ${gameState.discardDeck}") //
+        _ <- IO.println(s"draw: ${gameState.drawDeck}")       //
+
+        _    <- webSocketHub.broadcast(colorPlayerMessage(player, "'s turn"))
+        hand <- getHandWithIndex(player.playerID)
+        _    <- webSocketHub.sendToPlayer(player.playerID, s"Your hand is: $hand")
+
+        playOrPass <- playOrPassPrompt(player, gameState) // Does player want to play a card?
+        playerSkipped <- playOrPass.fold(false.pure[IO])(i => {
+          handleCardPlayed(player, playCard(i))
+        }) // If card played, does player skip draw?
+        _ <-
+          if (!playerSkipped) {
+            for {
+              card <- drawCard()
+              _    <- webSocketHub.sendToPlayer(player.playerID, s"$card drawn")
+              _ <- card match {
+                case ExplodingKitten =>
+                  for {
+                    _         <- webSocketHub.broadcast(s"${player.playerID} drew $card")
+                    defuseOpt <- tryFindDefuseIndex()
+                    _ <- defuseOpt.fold(killCurrentPlayer)(index =>
+                      playCard(index) *> webSocketHub.broadcast(s"$Defuse used")
+                    )
+                  } yield ()
+                case _ => IO.unit
+              }
+            } yield ()
+          } else IO.unit
+
+      } yield ()
+    )
+    .void
+
+
+  /**
+   * Prompt that asks if and which card the player wants to play
+   * @param player current player
+   * @param state current state of the game
+   * @return optional of the index of card played
+   */
+  private def playOrPassPrompt(player: Player, state: State): IO[Option[Int]] =
+    for {
+      _ <- webSocketHub.sendToPlayer(player.playerID, colorPlayerMessage(player, s", do you wish to play a card?"))
+      playerHand = state.playersHands(player.playerID)
+
+      _ <- webSocketHub.sendToPlayer(
+        player.playerID,
+        "Enter the index of the card you want to play (n to Pass or index -h to print card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
+      )
+      answer <- webSocketHub.getGameInput(player.playerID)
+
+      result <- answer match {
+        case "n" => None.pure[IO]
+        case s"$index -h" if index.toIntOption.isDefined =>
+          index.toInt - 1 match {
+            case i if playerHand.indices contains i =>
+              webSocketHub.sendToPlayer(
+                player.playerID,
+                colorErrorMessage(playerHand(i).toStringDescription)
+              ) *> playOrPassPrompt(
+                player,
+                state
+              )
+            case _ =>
+              webSocketHub.sendToPlayer(
+                player.playerID,
+                colorErrorMessage("Invalid index (e.g.: 1 -h)")
+              ) *> playOrPassPrompt(
+                player,
+                state
+              )
+          }
+        case s"${c1},${c2}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined =>
+          {
+            (c1.toInt, c2.toInt).toList match {
+              case list if list.forall(i => {
+                playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
+                  case Tacocat | FeralCat => true
+                  case _                  => false
+                })
+              }) =>
+                list.traverse(i => playCard(i-1)) *> stealFromPlayer(
+                  player.playerID,
+                  state.players,
+                  isRandom = true
+                )
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID,
+                  "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
+                ) *> playOrPassPrompt(player, state)
+            }
+          } *> None.pure[IO]
+        case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
+          {
+            (c1.toInt, c2.toInt, c3.toInt).toList match {
+              case list if list.forall(i => {
+                playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
+                  case Tacocat | FeralCat => true
+                  case _                  => false
+                })
+              }) => list.traverse(i => playCard(i-1)) *> stealFromPlayer(
+                player.playerID,
+                state.players,
+                isRandom = false
+              )
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID,
+                  "Invalid input, play 3 indices of cat cards (e.g.: 1 2 3"
+                ) *> playOrPassPrompt(player, state)
+            }
+          } *> None.pure[IO]
+        case x if x.toIntOption.isDefined =>
+          x.toInt - 1 match {
+            case i if playerHand.indices contains i =>
+              playerHand(i) match {
+                case ExplodingKitten | Defuse | Nope =>
+                  webSocketHub.sendToPlayer(
+                    player.playerID,
+                    colorErrorMessage("You can't play this card right now")
+                  ) *> playOrPassPrompt(player, state)
+                case _ => Some(i).pure[IO]
+              }
+
+            case _ =>
+              webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid index")) *> playOrPassPrompt(
+                player,
+                state
+              )
+          }
+
+        case _ =>
+          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> playOrPassPrompt(
+            player,
+            state
+          )
+      }
+    } yield result
+
+  /**
+   * Handles the card played, performing the necessary operations
+   * @param player current player
+   * @param ioCard card played
+   * @return if the played card caused the player to skip drawing a card
+   */
+  private def handleCardPlayed(player: Player, ioCard: IO[Card]): IO[Boolean] =
+    for {
+      card <- ioCard
+      _    <- webSocketHub.broadcast(colorPlayerMessage(player, s" played $card"))
+      res  <- askIfNopeCards(player.playerID)
+      skipped <-
+        if (res) false.pure[IO] // Card was noped, card played with no effect
+        else
+          card match {
+            case Shuffle =>
+              updateDrawDeck(_.shuffled) *> false.pure[IO]
+
+            case Skip => true.pure[IO]
+
+            case AlterTheFuture3X =>
+              for {
+                enoughCards <- gameStateRef.get.map(_.drawDeck.length < 3)
+                _           <- if (enoughCards) switchPiles2() else IO.unit
+                cards3      <- gameStateRef.get.map(_.drawDeck.getFirstN(3))
+                order       <- alterTheFuture(cards3, player.playerID)
+                _           <- updateDrawDeck(_.alterTheFuture3X(order))
+              } yield false
+
+            case SwapTopAndBottom =>
+              updateDrawDeck(_.swapTopAndBottom) *> false.pure[IO]
+
+            case Attack2X =>
+              for {
+                _ <- nextPlayer()
+                _ <- playerTurn()
+                _ <- previousPlayer()
+              } yield true
+
+            case TargetedAttack2X =>
+              for {
+                nextPlayer <- targetAttack(player.playerID)
+                _          <- setNextPlayer(nextPlayer)
+                _          <- playerTurn()
+                _          <- previousPlayer()
+              } yield true
+
+            case CatomicBomb =>
+              updateDrawDeck(_.withExplodingKittensOnTop) *> true.pure[IO]
+
+            case Bury =>
+              for {
+                card <- drawCard()
+                _    <- buryCard(player.playerID, card)
+              } yield true
+
+            case Reverse =>
+              updateDrawDeck(_.reversed) *> false.pure[IO]
+
+            case Tacocat | FeralCat => false.pure[IO]
+
+          }
+    } yield skipped
+
 
   // ___________ Deck Operations ______________________________//
 
@@ -266,15 +522,19 @@ case class Game(
         .mkString
     }
 
-  // ----inputs----//
+  // -----------prompts cards-----------------//
+
+  /**
+   * Prompt for the alter the future card, players are asked to order the next 3 cards
+   * @param cards3 the next 3 cards
+   * @param playerID the current player's id
+   * @return the new order of the cards, chosen by the player
+   */
   private def alterTheFuture(cards3: List[Card], playerID: PlayerID): IO[String] = {
     for {
       _ <- webSocketHub.sendToPlayer(playerID, "Next three cards are: \n")
       _ <- webSocketHub.sendToPlayer(
-        playerID,
-        s"${cards3.zipWithIndex.foldLeft("") { case (acc, (card, i)) =>
-            acc ++ s"${i + 1}. $card\n"
-          }}"
+        playerID,getStringWithIndex(cards3)
       )
       _      <- webSocketHub.sendToPlayer(playerID, "Insert new card order (e.g. 213) >>")
       string <- webSocketHub.getGameInput(playerID)
@@ -289,6 +549,11 @@ case class Game(
     } yield valid
   }
 
+  /**
+   * Prompt for Bury card. Asks player where they want to bury card and when valid, inserts the card at that index
+   * @param playerID current player's id
+   * @param card card to bury (hidden from the player)
+   */
   private def buryCard(playerID: PlayerID, card: Card): IO[Unit] = {
     for {
       deckLength <- gameStateRef.get.map(_.drawDeck.length)
@@ -306,224 +571,59 @@ case class Game(
 
   }
 
-  private def targetAttack(player: Player): IO[Player] =
+  /**
+   * Prompt for Targeted attack, asks player who they want to target
+   * @param playerID the current player's id
+   * @return the player chosen to be attacked
+   */
+  private def targetAttack(playerID: PlayerID): IO[Player] =
     for {
-      players <- gameStateRef.get.map(_.players)
-      _       <- webSocketHub.sendToPlayer(player.playerID, "\nWho do you want to target? \n")
+      players <- gameStateRef.get.map(_.players.filterNot(_.playerID == playerID))
+      _       <- webSocketHub.sendToPlayer(playerID, "\nWho do you want to target? \n")
       _ <- webSocketHub.sendToPlayer(
-        player.playerID,
-        s"${players.filterNot(_.playerID == player.playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
-            acc ++ s"${i + 1}. ${p.playerID}       "
-          }}"
+        playerID, getStringWithIndex(players.map(_.playerID))
       )
-      _      <- webSocketHub.sendToPlayer(player.playerID, "Insert index >> ")
-      string <- webSocketHub.getGameInput(player.playerID).map(_.toIntOption)
+      _      <- webSocketHub.sendToPlayer(playerID, "Insert index >> ")
+      string <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
       valid <- string match {
         case Some(value) =>
           value match {
             case x if (1 until players.length) contains x =>
-              players.filterNot(_.playerID == player.playerID)(x - 1).pure[IO]
+              players.filterNot(_.playerID == playerID)(x - 1).pure[IO]
             case _ =>
-              webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid index")) *> targetAttack(player)
+              webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid index")) *> targetAttack(playerID)
           }
         case None =>
-          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> targetAttack(player)
+          webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid input")) *> targetAttack(playerID)
       }
     } yield valid
 
-  // game loops
-  def initialize(): IO[Unit] = {
-    for {
-      _ <- webSocketHub.broadcast(gameTitleBanner)
-      _ <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
-      _ <- handCards()
-      _ <- setRandomPlayerNext()
-      _ <- gameLoop()
-    } yield ()
-  }
-
-  private def gameLoop(): IO[Unit] = {
-    val loop = for {
-      _          <- playerTurn()
-      nextPlayer <- nextPlayer()
-    } yield nextPlayer
-
-    loop *> getWinner.flatMap({
-      case Some(player) => webSocketHub.broadcast(colorPlayerMessage(player, " won the game"))
-      case None         => gameLoop()
-    })
-  }
-
-  private def playerTurn(): IO[Unit] = IO
-    .race( // On current player disconnected - break
-      for {
-        gameState <- gameStateRef.get
-        playerID = gameState.players(gameState.currentPlayerIndex).playerID
-        deferred <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
-        _        <- deferred.get
-      } yield (),
-      for {
-        _ <- webSocketHub.broadcast(s"\n$TurnSeparator\n")
-
-        gameState <- gameStateRef.get
-        player = gameState.players(gameState.currentPlayerIndex)
-
-        _ <- IO.println(s"discard: ${gameState.discardDeck}") //
-        _ <- IO.println(s"draw: ${gameState.drawDeck}")       //
-
-        _    <- webSocketHub.broadcast(colorPlayerMessage(player, "'s turn"))
-        hand <- getHandWithIndex(player.playerID)
-        _    <- webSocketHub.sendToPlayer(player.playerID, s"Your hand is: $hand")
-
-        playOrPass <- playOrPassPrompt(player, gameState) // Does player want to play a card?
-        playerSkipped <- playOrPass.fold(false.pure[IO])(i => {
-          handleCardPlayed(player, playCard(i))
-        }) // If card played, does player skip draw?
-        _ <-
-          if (!playerSkipped) {
-            for {
-              card <- drawCard()
-              _    <- webSocketHub.sendToPlayer(player.playerID, s"$card drawn")
-              _ <- card match {
-                case ExplodingKitten =>
-                  for {
-                    _         <- webSocketHub.broadcast(s"${player.playerID} drew $card")
-                    defuseOpt <- tryFindDefuseIndex()
-                    _ <- defuseOpt.fold(killCurrentPlayer)(index =>
-                      playCard(index) *> webSocketHub.broadcast(s"$Defuse used")
-                    )
-                  } yield ()
-                case _ => IO.unit
-              }
-            } yield ()
-          } else IO.unit
-
-      } yield ()
-    )
-    .void
-
-  private def playOrPassPrompt(player: Player, state: State): IO[Option[Int]] =
-    for {
-      _ <- webSocketHub.sendToPlayer(player.playerID, colorPlayerMessage(player, s", do you wish to play a card?"))
-      playerHand = state.playersHands(player.playerID)
-
-      _ <- webSocketHub.sendToPlayer(
-        player.playerID,
-        "Enter the index of the card you want to play (n to Pass or index -h to print card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
-      )
-      answer <- webSocketHub.getGameInput(player.playerID)
-
-      result <- answer match {
-        case "n" => None.pure[IO]
-        case s"$index -h" if index.toIntOption.isDefined =>
-          index.toInt - 1 match {
-            case i if playerHand.indices contains i =>
-              webSocketHub.sendToPlayer(
-                player.playerID,
-                colorErrorMessage(playerHand(i).toStringDescription)
-              ) *> playOrPassPrompt(
-                player,
-                state
-              )
-            case _ =>
-              webSocketHub.sendToPlayer(
-                player.playerID,
-                colorErrorMessage("Invalid index (e.g.: 1 -h)")
-              ) *> playOrPassPrompt(
-                player,
-                state
-              )
-          }
-        case s"${c1},${c2}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined =>
-          {
-            (c1.toInt, c2.toInt).toList match {
-              case list if list.forall(i => {
-                    playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
-                      case Tacocat | FeralCat => true
-                      case _                  => false
-                    })
-                  }) =>
-                list.traverse(i => playCard(i-1)) *> stealFromPlayer(
-                  player.playerID,
-                  state.players,
-                  isRandom = true
-                )
-              case _ =>
-                webSocketHub.sendToPlayer(
-                  player.playerID,
-                  "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
-                ) *> playOrPassPrompt(player, state)
-            }
-          } *> None.pure[IO]
-        case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
-          {
-            (c1.toInt, c2.toInt, c3.toInt).toList match {
-              case list if list.forall(i => {
-                    playerHand.indices.contains(i - 1) && (playerHand(i - 1) match {
-                      case Tacocat | FeralCat => true
-                      case _                  => false
-                    })
-                  }) => list.traverse(i => playCard(i-1)) *> stealFromPlayer(
-                  player.playerID,
-                  state.players,
-                  isRandom = false
-                )
-              case _ =>
-                webSocketHub.sendToPlayer(
-                  player.playerID,
-                  "Invalid input, play 3 indices of cat cards (e.g.: 1 2 3"
-                ) *> playOrPassPrompt(player, state)
-            }
-          } *> None.pure[IO]
-        case x if x.toIntOption.isDefined =>
-          x.toInt - 1 match {
-            case i if playerHand.indices contains i =>
-              playerHand(i) match {
-                case ExplodingKitten | Defuse | Nope =>
-                  webSocketHub.sendToPlayer(
-                    player.playerID,
-                    colorErrorMessage("You can't play this card right now")
-                  ) *> playOrPassPrompt(player, state)
-                case _ => Some(i).pure[IO]
-              }
-
-            case _ =>
-              webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid index")) *> playOrPassPrompt(
-                player,
-                state
-              )
-          }
-
-        case _ =>
-          webSocketHub.sendToPlayer(player.playerID, colorErrorMessage("Invalid input")) *> playOrPassPrompt(
-            player,
-            state
-          )
-      }
-    } yield result
-
+  /**
+   * Prompt for choosing a player to steal a card from, then steals it either randomly or asks the player to name a card
+   * @param playerID current player's id
+   * @param players list of current players
+   * @param isRandom if the card stolen should be random
+   */
   private def stealFromPlayer(playerID: PlayerID, players: List[Player], isRandom: Boolean): IO[Unit] =
     for {
       _ <- webSocketHub.sendToPlayer(playerID, "Who do you want to steal from?")
+      playersFilter = players.filterNot(_.playerID == playerID)
       _ <- webSocketHub.sendToPlayer(
-        playerID,
-        s"${players.filterNot(_.playerID == playerID).zipWithIndex.foldLeft("") { case (acc, (p, i)) =>
-            acc ++ s"${i + 1}. ${p.playerID}       "
-          }}"
+        playerID, getStringWithIndex(playersFilter.map(_.playerID))
       )
       _      <- webSocketHub.sendToPlayer(playerID, "Insert index >> ")
       string <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
       _ <- string match {
         case Some(value) =>
           value match {
-            case x if (1 until players.length) contains x =>
+            case x if (1 to playersFilter.length) contains x =>
               if (isRandom)
-                stealCard(fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID, toID = playerID, None)
+                stealCard(fromID = playersFilter(x - 1).playerID, toID = playerID, None)
               else
                 pickFromPlayer(
-                  fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID,
+                  fromID = playersFilter(x - 1).playerID,
                   toID = playerID
-                ).flatMap(card => stealCard(fromID = players.filterNot(_.playerID == playerID)(x - 1).playerID, toID = playerID, Some(card)))
+                ).flatMap(card => stealCard(fromID = playersFilter(x - 1).playerID, toID = playerID, Some(card)))
             case _ =>
               webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid index")) *> stealFromPlayer(
                 playerID,
@@ -540,6 +640,12 @@ case class Game(
       }
     } yield ()
 
+  /**
+   * Tries to steal a card from a given player
+   * @param fromID id of the player to steal from
+   * @param toID if of the player to receive the card
+   * @param cardOption option of a chosen card to steal
+   */
   private def stealCard(fromID: PlayerID, toID: PlayerID, cardOption: Option[Card]): IO[Unit] =
     webSocketHub.broadcast(s"$toID is stealing a card from $fromID") *> {
       gameStateRef
@@ -550,7 +656,6 @@ case class Game(
             case (_, None) => (gameState, None)
             case (Some(from), Some(to)) =>
               val index = cardOption.fold({
-                println("here")
                 Random.nextInt(from.length)}
               )(card => from.indexOf(card))
 
@@ -578,6 +683,12 @@ case class Game(
         }
     }
 
+  /**
+   * Prompt for choosing a card type to steal
+   * @param fromID id of the player to steal from
+   * @param toID id of the player stealing
+   * @return the chosen card type to steal
+   */
   private def pickFromPlayer(fromID: PlayerID, toID: PlayerID): IO[Card] = {
     val cardsPossible = List[Card](
       Defuse,
@@ -598,10 +709,7 @@ case class Game(
     for {
       _ <- webSocketHub.sendToPlayer(toID, "What card do you want?")
       _ <- webSocketHub.sendToPlayer(
-        toID,
-        s"${cardsPossible.zipWithIndex.foldLeft("") { case (acc, (card, i)) =>
-            acc ++ s"${i + 1}. $card       "
-          }}"
+        toID, getStringWithIndex(cardsPossible)
       )
       _      <- webSocketHub.sendToPlayer(toID, "Insert index >> ")
       string <- webSocketHub.getGameInput(toID).map(_.toIntOption)
@@ -619,64 +727,12 @@ case class Game(
     } yield card
   }
 
-  private def handleCardPlayed(player: Player, ioCard: IO[Card]): IO[Boolean] =
-    for {
-      card <- ioCard
-      _    <- webSocketHub.broadcast(colorPlayerMessage(player, s" played $card"))
-      res  <- askIfNopeCards(player.playerID)
-      skipped <-
-        if (res) false.pure[IO] // Card was noped, card played with no effect
-        else
-          card match {
-            case Shuffle =>
-              updateDrawDeck(_.shuffled) *> false.pure[IO]
-
-            case Skip => true.pure[IO]
-
-            case AlterTheFuture3X =>
-              for {
-                enoughCards <- gameStateRef.get.map(_.drawDeck.length < 3)
-                _           <- if (enoughCards) switchPiles2() else IO.unit
-                cards3      <- gameStateRef.get.map(_.drawDeck.getFirstN(3))
-                order       <- alterTheFuture(cards3, player.playerID)
-                _           <- updateDrawDeck(_.alterTheFuture3X(order))
-              } yield false
-
-            case SwapTopAndBottom =>
-              updateDrawDeck(_.swapTopAndBottom) *> false.pure[IO]
-
-            case Attack2X =>
-              for {
-                _ <- nextPlayer()
-                _ <- playerTurn()
-                _ <- previousPlayer()
-              } yield true
-
-            case TargetedAttack2X =>
-              for {
-                nextPlayer <- targetAttack(player)
-                _          <- setNextPlayer(nextPlayer)
-                _          <- playerTurn()
-                _          <- previousPlayer()
-              } yield true
-
-            case CatomicBomb =>
-              updateDrawDeck(_.withExplodingKittensOnTop) *> true.pure[IO]
-
-            case Bury =>
-              for {
-                card <- drawCard()
-                _    <- buryCard(player.playerID, card)
-              } yield true
-
-            case Reverse =>
-              updateDrawDeck(_.reversed) *> false.pure[IO]
-
-            case Tacocat | FeralCat => false.pure[IO]
-
-          }
-    } yield skipped
-
+  /**
+   * //TODO ask everyone at the same time and wait for 3 seconds stop when true
+   * Asks all players with nope cards if they want to nope this action, returns true on the first player that answers yes
+   * @param playerID current player's id
+   * @return true if anyone noped
+   */
   private def askIfNopeCards(playerID: PlayerID): IO[Boolean] = {
     for {
       playerHands <- gameStateRef.get.map(_.playersHands - playerID)
@@ -693,6 +749,13 @@ case class Game(
     } yield nopeResult
   }
 
+
+  /**
+   * Ask a player if they want to nope
+   * @param playerID id of the player being asked
+   * @param index - index of the nope card
+   * @return if this player wants to nope
+   */
   private def askForNope(playerID: PlayerID, index: Int): IO[Boolean] =
     for {
       _      <- webSocketHub.sendToPlayer(playerID, s"$playerID, do you wish to nope this action? (y/n)")
@@ -705,6 +768,13 @@ case class Game(
 
 }
 object Game {
+
+  /**
+   * Creates a new game for a number of players and a websockethub
+   * @param nPlayers number of players
+   * @param webSocketHub websockethub required for communication with game and players
+   * @return game created
+   */
   def create(
       nPlayers: Int,
       webSocketHub: WebSocketHub

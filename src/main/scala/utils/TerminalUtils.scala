@@ -38,6 +38,7 @@ object TerminalUtils {
   val SkullEmojiUnicode: String   = "\u2620\uFE0F"
   val CatFaceEmojiUnicode: String = "\uD83D\uDC31"
   val CatBodyEmojiUnicode: String = "\uD83D\uDC08"
+  val PartyEmojiUnicode: String = "\uD83C\uDF89"
 
   val gameTitleBanner: String = s"$CatFaceEmojiUnicode$CatBodyEmojiUnicode$OrangeText$Bold " +
     s"EXPLODING$ResetText$Bold KITTENS$ResetText - ${RedText}Scala Edition$ResetText " +
@@ -59,6 +60,13 @@ object TerminalUtils {
 
   def diedMessage(player: Player): String = s"\n$SkullEmojiUnicode " +
     s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
+
+  def getStringWithIndex(list: List[Any]): String =
+    s"${
+      list.zipWithIndex.foldLeft("\n") { case (acc, (item, i)) =>
+        acc ++ s"${i + 1}. $item      "
+      }
+    }"
 
 
   val TurnSeparator: String = "-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-"
