@@ -40,15 +40,19 @@
 > 
 > players being dealt the same hand fix ✔
 > 
-> Noping an attack breaks game
+> Noping an attack breaks game fix ✔
 > 
-> Nope not being asked to all players
+> Nope not being asked to all players ✔
 > 
-> Close players when game ends
+> Close things properly when game ends
 > 
 > Is it possible to notify players if server is down?
 >
-> Nope wait for 3s
+> Nope wait for 3s ✔
+> 
+> check whats wrong with targetted attack (2 players?)
+> 
+> check why nopes are skipping draw card
 
 
 ### Last milestone:
