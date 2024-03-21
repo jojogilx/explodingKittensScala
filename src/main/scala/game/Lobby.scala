@@ -77,7 +77,6 @@ object Lobby extends IOApp {
                           room.join(playerID.trim, q).flatMap {
                             case Left(value) => BadRequest(value)
                             case Right(deferred) =>
-                              IO.race(deferred.get,
                               wsb
 //                                .withOnClose(room.leave(playerID.trim))
                                 .build(
@@ -89,10 +88,7 @@ object Lobby extends IOApp {
                                   }).evalMap(room.sendToGame(playerID.trim)),
                                   send = Stream
                                     .repeatEval(q.take)
-                                ).onCancel(room.leave(playerID.trim))).flatMap {
-                                case Left(value) => Accepted()
-                                case Right(value) => value.pure[IO]
-                              }
+                                ).onCancel(room.leave(playerID.trim))
                           }
                         )
                     })

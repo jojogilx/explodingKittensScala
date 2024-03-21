@@ -18,7 +18,7 @@ case class Game(
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
     stateManager: StateManager,
-    deferredEnd: Deferred[IO,Boolean]
+    deferredEnd: Deferred[IO, Boolean]
 ) {
 
   /** Creates a player with PlayerID and joins the game
@@ -75,8 +75,6 @@ case class Game(
         case x if (1 until gameState.players.length).contains(x) => x
         case _                                                   => 0
       }
-      println(gameState.currentPlayerIndex)
-      println(index)
       gameState.copy(currentPlayerIndex = index)
     }
 
@@ -148,7 +146,6 @@ case class Game(
       _ <- gameLoop()
     } yield ()
   }
-  
 
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
     */
@@ -160,7 +157,9 @@ case class Game(
 
     loop *> getWinner.flatMap({
       case Some(player) =>
-        webSocketHub.broadcast(colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode")) *> deferredEnd.complete(true).void
+        webSocketHub.broadcast(
+          colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode")
+        ) *> deferredEnd.complete(true).void
       case None => gameLoop()
     })
   }
@@ -233,7 +232,6 @@ case class Game(
         "Enter the index of the card you want to play (n to Pass or index -h to print card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
       )
       answer <- webSocketHub.getGameInput(player.playerID)
-
       result <- answer match {
         case "n" => None.pure[IO]
         case s"$index -h" if index.toIntOption.isDefined =>
@@ -762,8 +760,7 @@ case class Game(
     } yield card
   }
 
-  /**
-    * they want to nope this action, returns true on the first player that answers yes
+  /** they want to nope this action, returns true on the first player that answers yes
     * @param playerID
     *   current player's id
     * @return
@@ -774,45 +771,36 @@ case class Game(
     for {
       playerHandsWithNope <- gameStateRef.get
         .map(_.playersHands - playerID)
-        .map(_.toList.filter {
+        .map(_.filter {
           case (_, hand) if hand.contains(Nope) => true
           case _                                => false
         })
-
-      either <-
+      result <-
         IO.race(
-          if (playerHandsWithNope.isEmpty) IO.unit else webSocketHub.broadcast(colorSystemMessage("Checking if action is noped")) *> IO.sleep(100.millis) *> broadCastCountDown(3),
+          if (playerHandsWithNope.isEmpty) IO.unit
+          else
+            webSocketHub.broadcast(colorSystemMessage("Checking if action is noped")) *> IO.sleep(
+              100.millis
+            ) *> broadCastCountDown(15) *> false.pure[IO],
           for {
-            deferred <- Deferred[IO, Option[(PlayerID, Int)]]
-
-            _ <- playerHandsWithNope.parTraverse { case (pID, hand) =>
-              askForNope2(pID, hand.indexOf(Nope), deferred)
+            _ <- playerHandsWithNope.keys.toList.parTraverse { pID =>
+              webSocketHub.sendToPlayer(pID, s"$pID, do you wish to nope this action? (y/n)")
             }
-            _   <- deferred.complete(None)
-            res <- deferred.get
+            ans <- webSocketHub.getPendingInputs(playerHandsWithNope.keys.toList, message = "y")
+            _ <- IO.println(9)
+            res <- ans.fold(IO.println(11) *> false.pure[IO]) { pID =>
+              playCardByID(pID, playerHandsWithNope(pID).indexOf(Nope)) *> webSocketHub.broadcast(
+                s"$pID played $Nope"
+              ) *> IO.println(10) *>true.pure[IO]
+            }
           } yield res
-        )
-      res <- either.fold(
-        _ => false.pure[IO],
-        {
-          case Some((pID, ind)) =>
-            playCardByID(pID, ind) *> webSocketHub.broadcast(s"$pID played $Nope") *> true.pure[IO]
-          case None => false.pure[IO]
+        ).flatMap {
+          case Left(_)      => false.pure[IO]
+          case Right(value) => value.pure[IO]
         }
-      )
-
-    } yield res
+ _<- IO.println("end")
+    } yield result
   }
-
-  private def askForNope2(playerID: PlayerID, index: Int, deferred: Deferred[IO, Option[(PlayerID, Int)]]): IO[Unit] =
-    for {
-      _      <- webSocketHub.sendToPlayer(playerID, s"$playerID, do you wish to nope this action? (y/n)")
-      answer <- webSocketHub.getGameInput(playerID)
-      _ <- answer match {
-        case "y" => deferred.complete(Some(playerID, index))
-        case _   => IO.unit
-      }
-    } yield ()
 
   private def broadCastCountDown(counter: Int): IO[Unit] =
     if (counter <= 0) IO.unit

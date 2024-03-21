@@ -45,24 +45,10 @@
 > Nope ask all players & wait for 3s ✔
 > 
 > check what's wrong with targeted attack last player in list not valid ✔
-> 
-> countdown is still counting if no one has nope card
 >
-> check why nopes are skipping draw card
+> check why nopes are skipping draw card ✔
 > 
-> answer yes on nope not working
+> answer yes on nope not working ✔
 > 
 > deferred on server to notify players of game end
-
-
-
-
-### Last milestone:
-> Better code
->
-> Cat cards can be noped
-> 
-> Multiple cards being played
-> 
-> Attack stacking and interruption
 
