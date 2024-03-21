@@ -17,7 +17,8 @@ case class Game(
     nPlayers: Int,
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
-    stateManager: StateManager
+    stateManager: StateManager,
+    deferredEnd: Deferred[IO,Boolean]
 ) {
 
   /** Creates a player with PlayerID and joins the game
@@ -147,6 +148,7 @@ case class Game(
       _ <- gameLoop()
     } yield ()
   }
+  
 
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
     */
@@ -158,12 +160,10 @@ case class Game(
 
     loop *> getWinner.flatMap({
       case Some(player) =>
-        webSocketHub.broadcast(colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode"))
+        webSocketHub.broadcast(colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode")) *> deferredEnd.complete(true).void
       case None => gameLoop()
     })
   }
-
-  // TODO maybe return the next playerID - easier to deal with turns?
 
   /** Handles a player turn
     */
@@ -614,7 +614,7 @@ case class Game(
       valid <- string match {
         case Some(value) =>
           value match {
-            case x if (1 until players.length) contains x =>
+            case x if (1 to players.length) contains x =>
               players.filterNot(_.playerID == playerID)(x - 1).pure[IO]
             case _ =>
               webSocketHub.sendToPlayer(playerID, colorErrorMessage("Invalid index")) *> targetAttack(playerID)
@@ -781,7 +781,7 @@ case class Game(
 
       either <-
         IO.race(
-          if (playerHandsWithNope.isEmpty) IO.unit else webSocketHub.broadcast(colorSystemMessage("Checking if action is noped")) *> IO.sleep(1.seconds) *> broadCastCountDown(5),
+          if (playerHandsWithNope.isEmpty) IO.unit else webSocketHub.broadcast(colorSystemMessage("Checking if action is noped")) *> IO.sleep(100.millis) *> broadCastCountDown(3),
           for {
             deferred <- Deferred[IO, Option[(PlayerID, Int)]]
 
@@ -836,7 +836,8 @@ object Game {
     */
   def create(
       nPlayers: Int,
-      webSocketHub: WebSocketHub
+      webSocketHub: WebSocketHub,
+      deferred: Deferred[IO, Boolean]
   ): IO[Game] = {
     val initialDrawDeck    = initShuffledNopeSauce(nPlayers)
     val initialDiscardDeck = Deck(List.empty)
@@ -848,6 +849,6 @@ object Game {
     for {
       stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
-    } yield new Game(nPlayers, webSocketHub, gameStateRef, stateManager)
+    } yield new Game(nPlayers, webSocketHub, gameStateRef, stateManager, deferred)
   }
 }

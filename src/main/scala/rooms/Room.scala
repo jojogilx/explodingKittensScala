@@ -1,7 +1,7 @@
 package rooms
 
 import cats.effect.std.Queue
-import cats.effect.{IO, Ref}
+import cats.effect.{Deferred, IO, Ref}
 import cats.implicits.catsSyntaxApplicativeId
 import game.Game
 import org.http4s.websocket.WebSocketFrame
@@ -9,7 +9,7 @@ import players.Player._
 import utils.TerminalUtils.{GreenText, RedText, ResetText}
 import websockethub.WebSocketHub
 
-case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState]) {
+case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState], deferred: Deferred[IO,Boolean]) {
 
   /**
    * Joins a player to this room
@@ -17,7 +17,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
    * @param queue queue to connect to the websockethub that will serve to communicate game<->player
    * @return either a string with the failure or a string with room created
    */
-  def join(playerID: PlayerID, queue: Queue[IO,WebSocketFrame.Text]): IO[Either[String, String]] =
+  def join(playerID: PlayerID, queue: Queue[IO,WebSocketFrame.Text]): IO[Either[String, Deferred[IO,Boolean]]] =
     for {
       currentPlayers <- stateRef.get.map(_.players)
       started <- stateRef.get.map(_.started)
@@ -25,9 +25,13 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
         if (currentPlayers.length == nPlayers) Left("This room is full").pure[IO]
         else if (started) Left("The game already started").pure[IO]
         else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
-        else
-          webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID)) *> game.joinGame(playerID) *> stateRef.update(roomState => roomState.copy(players = playerID :: roomState.players)) *> Right("Room created")
-            .pure[IO]
+        else {
+          for {
+            _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
+            _ <- stateRef.update(roomState => roomState.copy(players = playerID :: roomState.players))
+            _ <- game.joinGame(playerID)
+          } yield Right(deferred)
+        }
     } yield res
 
   /**
@@ -82,9 +86,10 @@ object Room {
   def create(nPlayers: Int, name: String): IO[Room] = {
     for {
       webSocketHub <- WebSocketHub.of
-      game         <- Game.create(nPlayers, webSocketHub)
+      deferred <- Deferred[IO, Boolean]
+      game         <- Game.create(nPlayers, webSocketHub, deferred)
       state        <- Ref.of[IO, RoomState](RoomState(List.empty, started = false))
-    } yield new Room(webSocketHub, game, name, nPlayers, state)
+    } yield new Room(webSocketHub, game, name, nPlayers, state, deferred)
   }
 }
 
