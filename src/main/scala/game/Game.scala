@@ -297,7 +297,7 @@ case class Game(
               case _ =>
                 webSocketHub.sendToPlayer(
                   player.playerID,
-                  "Invalid input, play 3 indices of cat cards (e.g.: 1 2 3"
+                  "Invalid input, play 3 indices of cat cards (e.g.: 1,2,3)"
                 ) *> playOrPassPrompt(player)
             }
           } *> None.pure[IO]
@@ -726,7 +726,10 @@ case class Game(
               from.get(index) match {
                 case Some(card) =>
                   val newTo    = to.appended(card)
-                  val newFrom  = from.filterNot(_ == card)
+
+                  val (a,b)  = from.splitAt(index)
+                  val newFrom = a ++ b.drop(1)
+
                   val newHands = hands + (fromID -> newFrom) + (toID -> newTo)
                   (gameState.copy(playersHands = newHands), Some(card))
 
@@ -782,7 +785,7 @@ case class Game(
       card <- string match {
         case Some(index) =>
           index match {
-            case i if (1 until cardsPossible.length) contains i =>
+            case i if (1 to cardsPossible.length) contains i =>
               cardsPossible(i - 1).pure[IO]
             case _ =>
               webSocketHub.sendToPlayer(toID, colorErrorMessage("Invalid choice")) *> pickFromPlayer(fromID, toID)
