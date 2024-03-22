@@ -112,7 +112,7 @@ case class Deck(private val cards: List[Card]) {
   def withExplodingKittensOnTop: Deck = {
     val explodingKittens = cards.filter(_ == ExplodingKitten)
     val otherCards       = cards.filter(_ != ExplodingKitten)
-    Deck(explodingKittens ++ otherCards)
+    Deck(explodingKittens ++ Random.shuffle(otherCards))
   }
 
   /** If there's enough cards, draws a card for the deck
