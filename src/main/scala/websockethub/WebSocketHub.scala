@@ -9,7 +9,7 @@ import fs2._
 
 trait WebSocketHub {
   type Message = String
-  def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame.Text], onDisconnected: IO[Unit]): IO[Unit]
+  def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
 
   def sendToPlayer(player: PlayerID, message: Message): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
@@ -17,6 +17,7 @@ trait WebSocketHub {
   def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
+  def endGame(): IO[Unit]
 
   def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]]
 
@@ -25,23 +26,23 @@ trait WebSocketHub {
 
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
-    stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame.Text], IO[Unit])]](Map.empty)
+    stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame], IO[Unit])]](Map.empty)
     systemQueue      <- Queue.unbounded[IO, (PlayerID, String)]
     pendingInputsRef <- Ref.of[IO, Map[PlayerID, Deferred[IO, String]]](Map.empty)
 
   } yield new WebSocketHub {
 
     override def connect(
-                          player: PlayerID,
-                          queue: Queue[IO, WebSocketFrame.Text],
-                          onDisconnected: IO[Unit]
-                        ): IO[Unit] = {
+        player: PlayerID,
+        queue: Queue[IO, WebSocketFrame],
+        onDisconnected: IO[Unit]
+    ): IO[Unit] = {
       println(s"$player connected")
       stateRef.update(_ + (player -> (queue, onDisconnected)))
     }
 
     override def sendToPlayer(playerID: PlayerID, message: Message): IO[Unit] = {
-     // println(message)
+      // println(message)
 
       stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
@@ -56,7 +57,7 @@ object WebSocketHub {
     }
 
     override def broadcast(message: Message): IO[Unit] = {
-    //  println(message)
+      //  println(message)
       stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
           queue.offer(WebSocketFrame.Text(message)) *> {
@@ -67,7 +68,7 @@ object WebSocketHub {
     }
 
     override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
-     // println(message)
+      // println(message)
       stateRef.get.flatMap(map =>
         map
           .filterNot(_._1 == playerID)
@@ -103,23 +104,33 @@ object WebSocketHub {
 
     override def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]] =
       for {
-        deferred <- Deferred[IO, Option[PlayerID]]
+        deferred  <- Deferred[IO, Option[PlayerID]]
         deferreds <- players.traverse(_ => Deferred[IO, String])
         map = players.zip(deferreds).toMap
         _ <- pendingInputsRef.update(_ => map)
-        _ <- IO.race(Stream
-          .repeatEval(systemQueue.take)
-          .evalMap({
-            case (id, str) if str.trim.toLowerCase.replaceAll("\n", "") == message =>
-              deferred.complete(id.some)  *> IO.pure(true)
-            case (id, str) =>
-              pendingInputsRef.get.map(map => map(id)).flatMap(deferred => deferred.complete(id)) *> IO.pure(false)
-          })
-          .takeWhile(!_)
-          .compile
-          .drain, pendingInputsRef.get.flatMap(map => map.values.toList.traverse(_.get) *> deferred.complete(None)))
+        _ <- IO.race(
+          Stream
+            .repeatEval(systemQueue.take)
+            .evalMap({
+              case (id, str) if str.trim.toLowerCase.replaceAll("\n", "") == message =>
+                deferred.complete(id.some) *> IO.pure(true)
+              case (id, str) =>
+                pendingInputsRef.get.map(map => map(id)).flatMap(deferred => deferred.complete(id)) *> IO.pure(false)
+            })
+            .takeWhile(!_)
+            .compile
+            .drain,
+          pendingInputsRef.get.flatMap(map => map.values.toList.traverse(_.get) *> deferred.complete(None))
+        )
         res <- deferred.get
       } yield res
+
+    override def endGame(): IO[Unit] =
+      stateRef.get.flatMap(map =>
+        map.values.toList.traverse { case (queue, _) =>
+          queue.offer(WebSocketFrame.Close())
+        }.void
+      )
   }
 
 }

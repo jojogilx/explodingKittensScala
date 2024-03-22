@@ -2,7 +2,6 @@ package game
 
 import cats.effect._
 import cats.effect.std.Queue
-import cats.implicits.catsSyntaxApplicativeId
 import com.comcast.ip4s.IpLiteralSyntax
 import fs2._
 import org.http4s._
@@ -66,7 +65,7 @@ object Lobby extends IOApp {
             case GET -> Root / "join" / roomName / playerID =>
               for {
                 rooms <- roomsRef.get.map(_.keys.toList)
-                q     <- Queue.unbounded[IO, WebSocketFrame.Text]
+                q     <- Queue.unbounded[IO, WebSocketFrame]
                 res <-
                   if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
                   else
@@ -76,9 +75,8 @@ object Lobby extends IOApp {
                         .fold(BadRequest("error"))(room =>
                           room.join(playerID.trim, q).flatMap {
                             case Left(value) => BadRequest(value)
-                            case Right(deferred) =>
+                            case Right(_) =>
                               wsb
-//                                .withOnClose(room.leave(playerID.trim))
                                 .build(
                                   receive = _.filter({
                                     case WebSocketFrame.Text(_) => true
@@ -88,6 +86,7 @@ object Lobby extends IOApp {
                                   }).evalMap(room.sendToGame(playerID.trim)),
                                   send = Stream
                                     .repeatEval(q.take)
+
                                 ).onCancel(room.leave(playerID.trim))
                           }
                         )

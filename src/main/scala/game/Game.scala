@@ -17,8 +17,7 @@ case class Game(
     nPlayers: Int,
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
-    stateManager: StateManager,
-    deferredEnd: Deferred[IO, Boolean]
+    stateManager: StateManager
 ) {
 
   /** Creates a player with PlayerID and joins the game
@@ -160,7 +159,7 @@ case class Game(
       case Some(player) =>
         webSocketHub.broadcast(
           colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode")
-        ) *> deferredEnd.complete(true).void
+        ) *> webSocketHub.endGame() *> IO.println(s"ended")
       case None => gameLoop()
     })
   }
@@ -856,8 +855,7 @@ object Game {
     */
   def create(
       nPlayers: Int,
-      webSocketHub: WebSocketHub,
-      deferred: Deferred[IO, Boolean]
+      webSocketHub: WebSocketHub
   ): IO[Game] = {
     val initialDrawDeck    = initShuffledNopeSauce(nPlayers)
     val initialDiscardDeck = Deck(List.empty)
@@ -869,6 +867,6 @@ object Game {
     for {
       stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
-    } yield new Game(nPlayers, webSocketHub, gameStateRef, stateManager, deferred)
+    } yield new Game(nPlayers, webSocketHub, gameStateRef, stateManager)
   }
 }

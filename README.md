@@ -56,5 +56,5 @@
 > 
 > remove hand when player dies!!!!  ✔
 > 
-> > notify players of game end
+> close players of game end ✔
 

@@ -9,7 +9,7 @@ import players.Player._
 import utils.TerminalUtils.{GreenText, RedText, ResetText}
 import websockethub.WebSocketHub
 
-case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState], deferred: Deferred[IO,Boolean]) {
+case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState]) {
 
   /**
    * Joins a player to this room
@@ -17,7 +17,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
    * @param queue queue to connect to the websockethub that will serve to communicate game<->player
    * @return either a string with the failure or a string with room created
    */
-  def join(playerID: PlayerID, queue: Queue[IO,WebSocketFrame.Text]): IO[Either[String, Deferred[IO,Boolean]]] =
+  def join(playerID: PlayerID, queue: Queue[IO,WebSocketFrame]): IO[Either[String, Unit]] =
     for {
       currentPlayers <- stateRef.get.map(_.players)
       started <- stateRef.get.map(_.started)
@@ -30,7 +30,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
             _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
             _ <- stateRef.update(roomState => roomState.copy(players = playerID :: roomState.players))
             _ <- game.joinGame(playerID)
-          } yield Right(deferred)
+          } yield Right()
         }
     } yield res
 
@@ -86,10 +86,9 @@ object Room {
   def create(nPlayers: Int, name: String): IO[Room] = {
     for {
       webSocketHub <- WebSocketHub.of
-      deferred <- Deferred[IO, Boolean]
-      game         <- Game.create(nPlayers, webSocketHub, deferred)
+      game         <- Game.create(nPlayers, webSocketHub)
       state        <- Ref.of[IO, RoomState](RoomState(List.empty, started = false))
-    } yield new Room(webSocketHub, game, name, nPlayers, state, deferred)
+    } yield new Room(webSocketHub, game, name, nPlayers, state)
   }
 }
 
