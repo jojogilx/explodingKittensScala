@@ -147,6 +147,17 @@ case class Deck(private val cards: List[Card]) {
     Deck(card :: cards)
   }
 
+  /** Created a new Deck with new cards on top
+   * @param cardsN
+   *   \- cards to concat
+   * @return
+   *   new deck
+   */
+  def concat(cardsN: List[Card]): Deck = {
+    Deck(cardsN ++ cards)
+  }
+
+
   /** Creates new deck with top and bottom card swapped
     * @return
     *   the new deck

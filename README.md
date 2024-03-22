@@ -49,6 +49,12 @@
 > check why nopes are skipping draw card ✔
 > 
 > answer yes on nope not working ✔
+>
+> steal stolen card not working? ✔
 > 
-> deferred on server to notify players of game end
+> dont ask for cards if there's no cards in hand  ✔
+> 
+> remove hand when player dies!!!!  ✔
+> 
+> > notify players of game end
 

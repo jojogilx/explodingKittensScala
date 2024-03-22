@@ -41,7 +41,7 @@ object WebSocketHub {
     }
 
     override def sendToPlayer(playerID: PlayerID, message: Message): IO[Unit] = {
-      println(message)
+     // println(message)
 
       stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
@@ -56,7 +56,7 @@ object WebSocketHub {
     }
 
     override def broadcast(message: Message): IO[Unit] = {
-      println(message)
+    //  println(message)
       stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
           queue.offer(WebSocketFrame.Text(message)) *> {
@@ -67,7 +67,7 @@ object WebSocketHub {
     }
 
     override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
-      println(message)
+     // println(message)
       stateRef.get.flatMap(map =>
         map
           .filterNot(_._1 == playerID)
