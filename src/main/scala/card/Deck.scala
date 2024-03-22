@@ -10,7 +10,7 @@ object Deck {
     */
   private val nopeSauceMap: Int => Map[Card, Int] = nPlayers =>
     Map(
-      ExplodingKitten  -> (nPlayers - 1)*10,
+      ExplodingKitten  -> (nPlayers - 1),
       Defuse           -> nPlayers,
       Nope             -> 8,
       Shuffle          -> 4,
