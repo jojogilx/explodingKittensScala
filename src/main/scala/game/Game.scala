@@ -116,7 +116,7 @@ case class Game(
           case x          => x
         }
 
-        (gameState.copy(players = newPlayers, currentPlayerIndex = index, playersHands = newHands), right.head) // > avoid head
+        (gameState.copy(discardDeck= gameState.discardDeck.prepend(ExplodingKitten),players = newPlayers, currentPlayerIndex = index, playersHands = newHands), right.head) // > avoid head
 
       }
       .flatMap(player => webSocketHub.broadcast(diedMessage(player)))
@@ -204,7 +204,12 @@ case class Game(
                     _         <- webSocketHub.broadcast(s"${player.playerID} drew $card")
                     defuseOpt <- tryFindDefuseIndex()
                     _ <- defuseOpt.fold(killCurrentPlayer)(index =>
-                      playCard(index) *> webSocketHub.broadcast(s"$Defuse used")
+                      for{
+                        _ <- playCard(index)
+                        _ <-webSocketHub.broadcast(s"$Defuse used")
+                        _ <- webSocketHub.sendToPlayer(player.playerID, s"Choose where to bury the $ExplodingKitten")
+                        _ <- buryCard(player.playerID, ExplodingKitten)
+                      } yield ()
                     )
                   } yield ()
                 case _ => IO.unit
@@ -411,7 +416,7 @@ case class Game(
 
         card match {
           case ExplodingKitten =>
-            (gameState.copy(drawDeck = deck, discardDeck = gameState.discardDeck.prepend(ExplodingKitten)), card)
+            (gameState.copy(drawDeck = deck), card)
           case _ =>
             (
               gameState.copy(drawDeck = deck, playersHands = gameState.playersHands + (currentPlayer -> playerHand)),
