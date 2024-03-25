@@ -78,12 +78,6 @@ case class Deck(private val cards: List[Card]) {
     */
   def length: Int = cards.length
 
-  /** Reverses current deck
-    * @return
-    *   new reversed deck
-    */
-  def reversed: Deck = Deck(cards.reverse)
-
   /** Returns the first N cards from the deck
     * @param n
     *   \- how many cards

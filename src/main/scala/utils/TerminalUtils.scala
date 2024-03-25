@@ -21,17 +21,9 @@ object TerminalUtils {
   val BrightGreenText  = "\u001b[92m"
   val PinkText         = "\u001b[38;5;206m"
 
-  val RedBackground     = "\u001B[41m"
-  val GreenBackground   = "\u001B[42m"
-  val YellowBackground  = "\u001B[43m"
-  val BlueBackground    = "\u001B[44m"
-  val MagentaBackground = "\u001B[45m"
-  val CyanBackground    = "\u001B[46m"
-  val WhiteBackground   = "\u001B[107m"
   val OrangeBackground  = "\u001B[48;5;208m"
 
   val Bold      = "\u001b[1m"
-  val Underline = "\u001b[4m"
 
   val BombEmojiUnicode: String    = "\uD83D\uDCA3"
   val FireEmojiUnicode: String    = "\uD83D\uDD25"

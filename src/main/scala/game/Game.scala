@@ -61,14 +61,13 @@ case class Game(
     gameStateRef
       .modify { gameState =>
         val index = Random.nextInt(gameState.players.length)
-
         (gameState.copy(currentPlayerIndex = index), gameState.players(index))
       }
       .flatMap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting\n")))
 
   /** Sets the current player index to the next player
     */
-  private def nextPlayer(): IO[Unit] =
+  private def rightOfPlayer(): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex + 1 match {
         case x if (1 until gameState.players.length).contains(x) => x
@@ -79,7 +78,7 @@ case class Game(
 
   /** Sets the current player index to the previous player
     */
-  private def previousPlayer(): IO[Unit] =
+  private def leftOfPlayer(): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex - 1 match {
         case x if x < 0 => gameState.players.length - 1
@@ -88,6 +87,23 @@ case class Game(
 
       gameState.copy(currentPlayerIndex = index)
     }
+
+  private def nextPlayer(): IO[Unit]= {
+    gameStateRef.get.flatMap(gameState =>
+      if(gameState.orderRight) rightOfPlayer() else leftOfPlayer()
+    )
+  }
+
+  private def previousPlayer(): IO[Unit]= {
+    gameStateRef.get.flatMap(gameState =>
+      if(gameState.orderRight) leftOfPlayer() else rightOfPlayer()
+    )
+  }
+
+  private def reverseOrder(): IO[Unit] = {
+    gameStateRef.update(gameState => gameState.copy(orderRight = !gameState.orderRight))
+  }
+
 
   /** Sets the current player index to the index of a given player
     * @param player
@@ -152,8 +168,8 @@ case class Game(
   private def gameLoop(): IO[Unit] = {
     val loop = for {
       _          <- playerTurn()
-      nextPlayer <- nextPlayer()
-    } yield nextPlayer
+      _ <- nextPlayer()
+    } yield ()
 
     loop *> getWinner.flatMap({
       case Some(player) =>
@@ -390,7 +406,7 @@ case class Game(
               } yield true
 
             case Reverse =>
-              updateDrawDeck(_.reversed) *> false.pure[IO]
+              reverseOrder() *> true.pure[IO]
 
             case Tacocat | FeralCat => false.pure[IO]
 
@@ -870,7 +886,7 @@ object Game {
     val currentPlayerIndex = -1
     val playersList        = List.empty
 
-    val initialState = State(initialDrawDeck, initialDiscardDeck, currentPlayerIndex, playersList, Map.empty, Map.empty)
+    val initialState = State(initialDrawDeck, initialDiscardDeck, currentPlayerIndex, playersList, Map.empty, Map.empty, orderRight = true)
 
     for {
       stateManager <- StateManager.of(initialState, webSocketHub)
