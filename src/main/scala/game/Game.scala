@@ -253,6 +253,7 @@ case class Game(
   private def playOrPassPrompt(player: Player): IO[Option[Int]] =
     for {
       state <- gameStateRef.get
+      _ <- webSocketHub.broadcast(colorSystemMessage(s"Draw pile size: ${state.drawDeck.length} cards${state.discardDeck.topCard.fold("")(card => s", last played card was $card")}"))
       _ <- webSocketHub.sendToPlayer(player.playerID, colorPlayerMessage(player, s", do you wish to play a card?"))
       playerHand = state.playersHands(player.playerID)
 
