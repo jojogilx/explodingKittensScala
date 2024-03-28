@@ -411,6 +411,18 @@ case class Game(
 
             case Tacocat | FeralCat => false.pure[IO]
 
+            case BarkingKitten => ???
+            case DrawFromTheBottom => ???
+            case GarbageCollection => ???
+            case IllTakeThat => ???
+            case ImplodingKitten => ???
+            case Mark => ???
+            case PersonalAttack3X => ???
+            case SeeTheFuture3X => ???
+            case SeeTheFuture5X => ???
+            case ShareTheFuture3X => ???
+            case StreakingKitten => ???
+            case SuperSkip => ???
           }
     } yield skipped
 
