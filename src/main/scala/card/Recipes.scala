@@ -406,6 +406,74 @@ case object ThePurrage extends Recipe {
   override val cardsOnStart: Int => Int = nPlayers => if(nPlayers==maxPlayers) 5 else 7
 }
 
+case object MindGames extends Recipe {
+  override val name: String = "Mind Games"
+  override val description: String = "You know so much, but you can do so little."
+  override val cardCount: Int => Map[Card, Int] =
+    nPlayers =>
+      Map(
+        ExplodingKitten -> (nPlayers - 1),
+        Defuse -> nPlayers,
+        Bury -> 4,
+        SeeTheFuture3X -> 6,
+        Skip -> 4,
+        Mark -> 4,
+        DrawFromTheBottom -> 2,
+        Reverse -> 4,
+        Tacocat -> 4,
+        RainbowRalphingCat -> 4,
+        ZombieCat -> 4
+      )
+  override val minPlayers: Int = 2
+  override val maxPlayers: Int = 5
+  override val defusesOnStart: Int = 1
+  override val playTime: Duration = 15.minutes
+  override val cardsOnStart: Int => Int = _ => 5
+}
+
+case object CardHoarders extends Recipe {
+  override val name: String = "Card Hoarders"
+  override val description: String = "To draw, or not to draw? (The answer is to draw.)"
+  override val cardCount: Int => Map[Card, Int] =
+    nPlayers =>
+      Map(ExplodingKitten -> {if(nPlayers == maxPlayers) 2 else 1},
+        Defuse -> nPlayers,
+        ImplodingKitten -> 1,
+        SeeTheFuture3X -> 4,
+        ShareTheFuture3X -> 4,
+        SwapTopAndBottom -> 3,
+        DrawFromTheBottom -> 2,
+        Shuffle -> 3,
+        Tacocat -> 4,
+        RainbowRalphingCat -> 4,
+        ZombieCat -> 4,
+        Nope -> 4)
+  override val minPlayers: Int = 2
+  override val maxPlayers: Int = 4
+  override val defusesOnStart: Int = 1
+  override val playTime: Duration = 10.minutes
+  override val cardsOnStart: Int => Int = _ => 5
+}
+
+case object CatFight extends Recipe {
+  override val name: String = "Cat Fight"
+  override val description: String = "This just got personal."
+  override val cardCount: Int => Map[Card, Int] =
+    nPlayers =>
+      Map(ExplodingKitten -> (nPlayers - 1),
+        Defuse -> nPlayers,
+        Attack2X -> 4,
+        TargetedAttack2X -> 2,
+        Nope -> 3,
+        AlterTheFuture3XNOW -> 2,
+        Reverse -> 3)
+  override val minPlayers: Int = 2
+  override val maxPlayers: Int = 4
+  override val defusesOnStart: Int = 1
+  override val playTime: Duration = 5.minutes
+  override val cardsOnStart: Int => Int = _ => 2
+}
+
 object Recipes {
 
   val nopeSauceMap: Int => Map[Card, Int] = nPlayers =>
