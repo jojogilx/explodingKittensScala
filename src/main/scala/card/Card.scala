@@ -14,7 +14,7 @@ sealed trait Card {
 }
 
 sealed trait CatCard extends Card {
-  override val description: String = s"This is a cat card and is powerless on its own. Play two ${title}s to steal a random card from another player or 3 to chose the card you want from them"
+  override val description: String = s"This is a cat card and is powerless on its own. Play two ${title}s to steal a random card from another player or 3 to name a card you want from them"
   override val textColor: String = WhiteText
 }
 
@@ -151,6 +151,15 @@ case object BikiniCat extends CatCard {
 
 case object CatsSchrodinger extends CatCard {
   override val title: String     = "Cat's Schrödinger"
+  override val emoji: String     = "??????"
+}
+
+case object RainbowRalphingCat extends CatCard {
+  override val title: String     = "Rainbow-Ralphing Cat"
+  override val emoji: String     = "??????"
+}
+case object ZombieCat extends CatCard {
+  override val title: String     = "Zombie Cat"
   override val emoji: String     = "??????"
 }
 

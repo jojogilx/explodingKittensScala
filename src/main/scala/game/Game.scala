@@ -181,7 +181,7 @@ case class Game(
   }
 
   /** Handles a player turn
-    */
+    */ // meter a player turn com o id do player e quantas turns tem de fazer, then do it recursively
   private def playerTurn(): IO[Unit] = IO
     .race( // On current player disconnected - break
       for {

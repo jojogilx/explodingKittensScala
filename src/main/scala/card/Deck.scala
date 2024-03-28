@@ -2,29 +2,10 @@ package card
 
 import scala.language.reflectiveCalls
 import scala.util.Random
+import Recipes._
 
 object Deck {
 
-  /**
-   * Card types' count for nope sauce recipe
-    */
-  private val nopeSauceMap: Int => Map[Card, Int] = nPlayers =>
-    Map(
-      ExplodingKitten  -> (nPlayers - 1),
-      Defuse           -> nPlayers,
-      Nope             -> 8,
-      Shuffle          -> 4,
-      Skip             -> 4,
-      AlterTheFuture3X -> 2,
-      SwapTopAndBottom -> 2,
-      Attack2X         -> 3,
-      TargetedAttack2X -> 2,
-      CatomicBomb      -> 1,
-      Bury             -> 3,
-      Tacocat          -> 4,
-      FeralCat         -> 6,
-      Reverse          -> 4
-    )
 
   /** Creates a deck from the nope sauce recipe's cards, shuffled
     * @param nPlayers
