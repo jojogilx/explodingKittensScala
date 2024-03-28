@@ -2,7 +2,7 @@ package card
 
 import scala.concurrent.duration.{Duration, DurationInt}
 
-abstract case class Recipe() {
+sealed trait Recipe {
   val name: String
   val description: String
   val cardCount: Int => Map[Card, Int]
@@ -474,26 +474,3 @@ case object CatFight extends Recipe {
   override val cardsOnStart: Int => Int = _ => 2
 }
 
-object Recipes {
-
-  val nopeSauceMap: Int => Map[Card, Int] = nPlayers =>
-    Map(
-      ExplodingKitten  -> (nPlayers - 1),
-      Defuse           -> nPlayers,
-      Nope             -> 8,
-      Shuffle          -> 4,
-      Skip             -> 4,
-      AlterTheFuture3X -> 2,
-      SwapTopAndBottom -> 2,
-      Attack2X         -> 3,
-      TargetedAttack2X -> 2,
-      CatomicBomb      -> 1,
-      Bury             -> 3,
-      Tacocat          -> 4,
-      FeralCat         -> 6,
-      Reverse          -> 4
-    )
-
-
-
-}

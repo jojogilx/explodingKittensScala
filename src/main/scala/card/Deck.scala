@@ -2,7 +2,7 @@ package card
 
 import scala.language.reflectiveCalls
 import scala.util.Random
-import Recipes._
+import cats.implicits.catsSyntaxOptionId
 
 object Deck {
 
@@ -13,9 +13,17 @@ object Deck {
     * @return
     *   created shuffled deck
     */
-  def initShuffledNopeSauce(nPlayers: Int): Deck = {
+/*  def initShuffledNopeSauce(nPlayers: Int): Deck = {
     val cards = nopeSauceMap(nPlayers).flatMap { case (card, count) => List.fill(count)(card) }.toList
     Deck(cards).shuffled
+  }*/
+
+
+  def initFromRecipe(recipe: Recipe, nPlayers: Int): Option[Deck] = nPlayers match {
+    case x if recipe.minPlayers to recipe.maxPlayers contains x =>
+      val cards = recipe.cardCount(x).flatMap { case (card, count) => List.fill(count)(card) }.toList
+      Deck(cards).some
+    case _ => None
   }
 
   /** Creates a new deck from 2 decks, adding the cards and shuffling them
@@ -36,11 +44,18 @@ object Deck {
     * @return
     *   tuple of card list with no bombs and defuses and the list of bombs
     */
-  def removeDefuseAndBombs(deck: Deck): (List[Card], List[Card]) = {
-    deck.cards.filterNot(_ == Defuse).partition({
+  def removeDefuseAndBombs(deck: Deck, numberOfDefuses: Int): (List[Card], List[Card]) = {
+    print(numberOfDefuses)
+    print("DEFUSE")
+    val (deck2, bombs) = deck.cards.filterNot(_==Defuse).partition({
       case ExplodingKitten => false
       case _ => true
     })
+
+    val defusesInDeck = deck.cards.count(_ == Defuse) - numberOfDefuses
+
+    (Deck(deck2 ++ (1 to defusesInDeck).map(_ => Defuse)).shuffled.cards, bombs)
+
   }
 
 }

@@ -460,7 +460,7 @@ case class Game(
   private def handCards(): IO[Unit] = {
     webSocketHub.broadcast(colorSystemMessage(s"Handing cards...\n")) *> {
       gameStateRef.update { gameState =>
-        val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck)
+        val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, NopeSauce.defusesOnStart * nPlayers)
         val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
           case ((cards, map), p) =>
             val (hand, newDrawDeck) = cards.splitAt(7)
@@ -882,12 +882,12 @@ object Game {
       nPlayers: Int,
       webSocketHub: WebSocketHub
   ): IO[Game] = {
-    val initialDrawDeck    = initShuffledNopeSauce(nPlayers)
+    val initialDrawDeck    = initFromRecipe(NopeSauce,nPlayers)
     val initialDiscardDeck = Deck(List.empty)
     val currentPlayerIndex = -1
     val playersList        = List.empty
 
-    val initialState = State(initialDrawDeck, initialDiscardDeck, currentPlayerIndex, playersList, Map.empty, Map.empty, orderRight = true)
+    val initialState = State(initialDrawDeck.get, initialDiscardDeck, currentPlayerIndex, playersList, Map.empty, Map.empty, orderRight = true)
 
     for {
       stateManager <- StateManager.of(initialState, webSocketHub)
