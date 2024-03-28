@@ -57,44 +57,44 @@ case class Game(
 
   /** Sets the current player index to a random number, bounded by how many players are in-game
     */
-  private def setRandomPlayerNext(): IO[Unit] =
+  private def setRandomPlayerNext(): IO[Player] =
     gameStateRef
       .modify { gameState =>
         val index = Random.nextInt(gameState.players.length)
         (gameState.copy(currentPlayerIndex = index), gameState.players(index))
       }
-      .flatMap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting\n")))
+      .flatTap(player => webSocketHub.broadcast(colorPlayerMessage(player, "'s starting\n")))
 
   /** Sets the current player index to the next player
     */
-  private def rightOfPlayer(): IO[Unit] =
-    gameStateRef.update { gameState =>
+  private def rightOfPlayer(): IO[Player] =
+    gameStateRef.modify { gameState =>
       val index = gameState.currentPlayerIndex + 1 match {
         case x if (1 until gameState.players.length).contains(x) => x
         case _                                                   => 0
       }
-      gameState.copy(currentPlayerIndex = index)
+      (gameState.copy(currentPlayerIndex = index), gameState.players(index))
     }
 
   /** Sets the current player index to the previous player
     */
-  private def leftOfPlayer(): IO[Unit] =
-    gameStateRef.update { gameState =>
+  private def leftOfPlayer(): IO[Player] =
+    gameStateRef.modify { gameState =>
       val index = gameState.currentPlayerIndex - 1 match {
         case x if x < 0 => gameState.players.length - 1
         case x          => x
       }
 
-      gameState.copy(currentPlayerIndex = index)
+      (gameState.copy(currentPlayerIndex = index), gameState.players(index))
     }
 
-  private def nextPlayer(): IO[Unit]= {
+  private def nextPlayer(): IO[Player]= {
     gameStateRef.get.flatMap(gameState =>
       if(gameState.orderRight) rightOfPlayer() else leftOfPlayer()
     )
   }
 
-  private def previousPlayer(): IO[Unit]= {
+  private def previousPlayer(): IO[Player]= {
     gameStateRef.get.flatMap(gameState =>
       if(gameState.orderRight) leftOfPlayer() else rightOfPlayer()
     )
@@ -158,35 +158,30 @@ case class Game(
       _ <- webSocketHub.broadcast(gameTitleBanner)
       _ <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
       _ <- handCards()
-      _ <- setRandomPlayerNext()
-      _ <- gameLoop()
+      player <- setRandomPlayerNext()
+      _ <- gameLoop(player)
     } yield ()
   }
 
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
     */
-  private def gameLoop(): IO[Unit] = {
-    val loop = for {
-      _          <- playerTurn()
-      _ <- nextPlayer()
-    } yield ()
-
-    loop *> getWinner.flatMap({
+  private def gameLoop(player: Player): IO[Unit] = {
+    playerTurn(player) *> getWinner.flatMap({
       case Some(player) =>
         webSocketHub.broadcast(
           colorPlayerMessage(player, s" won the game $PartyEmojiUnicode$PartyEmojiUnicode")
         ) *> webSocketHub.endGame() *> IO.println(s"ended")
-      case None => gameLoop()
+      case None => nextPlayer().flatMap(np => gameLoop(np))
     })
   }
 
   /** Handles a player turn
     */ // meter a player turn com o id do player e quantas turns tem de fazer, then do it recursively
-  private def playerTurn(): IO[Unit] = IO
+  private def playerTurn(currentPlayer: Player): IO[Unit] = IO
     .race( // On current player disconnected - break
       for {
         gameState <- gameStateRef.get
-        playerID = gameState.players(gameState.currentPlayerIndex).playerID
+        playerID = currentPlayer.playerID
         deferred <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
         _        <- deferred.get
       } yield (),
@@ -194,37 +189,37 @@ case class Game(
         _ <- webSocketHub.broadcast(s"\n$TurnSeparator\n")
 
         gameState <- gameStateRef.get
-        player = gameState.players(gameState.currentPlayerIndex)
+        playerID = currentPlayer.playerID
 
         _ <- IO.println(s"discard: ${gameState.discardDeck}") //
         _ <- IO.println(s"draw: ${gameState.drawDeck}")       //
 
-        _    <- webSocketHub.broadcast(colorPlayerMessage(player, "'s turn"))
-        hand <- getHandWithIndex(player.playerID)
-        _    <- webSocketHub.sendToPlayer(player.playerID, s"Your hand is: $hand")
+        _    <- webSocketHub.broadcast(colorPlayerMessage(currentPlayer, "'s turn"))
+        hand <- getHandWithIndex(playerID)
+        _    <- webSocketHub.sendToPlayer(playerID, s"Your hand is: $hand")
 
-        playOrPass <-  if(canPlayAnything(gameState.playersHands(player.playerID)))
-          playOrPassPrompt(player) // Does player want to play a card?
+        playOrPass <-  if(canPlayAnything(gameState.playersHands(playerID)))
+          playOrPassPrompt(currentPlayer) // Does player want to play a card?
         else IO(None)
         playerSkipped <- playOrPass.fold(false.pure[IO])(i => {
-          handleCardPlayed(player, playCard(i))
+          handleCardPlayed(currentPlayer, playCard(i))
         }) // If card played, does player skip draw?
         _ <-
           if (!playerSkipped) {
             for {
               card <- drawCard()
-              _    <- webSocketHub.sendToPlayer(player.playerID, s"$card drawn")
+              _    <- webSocketHub.sendToPlayer(playerID, s"$card drawn")
               _ <- card match {
                 case ExplodingKitten =>
                   for {
-                    _         <- webSocketHub.broadcast(s"${player.playerID} drew $card")
+                    _         <- webSocketHub.broadcast(s"$playerID drew $card")
                     defuseOpt <- tryFindDefuseIndex()
                     _ <- defuseOpt.fold(killCurrentPlayer)(index =>
                       for{
                         _ <- playCard(index)
                         _ <-webSocketHub.broadcast(s"$Defuse used")
-                        _ <- webSocketHub.sendToPlayer(player.playerID, s"Choose where to bury the $ExplodingKitten")
-                        _ <- buryCard(player.playerID, ExplodingKitten)
+                        _ <- webSocketHub.sendToPlayer(playerID, s"Choose where to bury the $ExplodingKitten")
+                        _ <- buryCard(playerID, ExplodingKitten)
                       } yield ()
                     )
                   } yield ()
@@ -384,8 +379,8 @@ case class Game(
 
             case Attack2X =>
               for {
-                _ <- nextPlayer()
-                _ <- playerTurn()
+                np <- nextPlayer()
+                _ <- playerTurn(np)
                 _ <- previousPlayer()
               } yield true
 
@@ -393,7 +388,7 @@ case class Game(
               for {
                 nextPlayer <- targetAttack(player.playerID)
                 _          <- setNextPlayer(nextPlayer)
-                _          <- playerTurn()
+                _          <- playerTurn(nextPlayer)
                 _          <- previousPlayer()
               } yield true
 
