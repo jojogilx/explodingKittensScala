@@ -116,6 +116,16 @@ case class Deck(private val cards: List[Card]) {
     case card :: newDeck => (Deck(newDeck), card)
   }
 
+
+
+  /** If there's enough cards, draws a card for the bottom of the deck deck
+   * @return
+   *   Option of tuple of the remaining deck and the card drawn
+   */
+  def drawFromBottom: (Deck, Card) = cards match {
+    case newDeck :+ card  => (Deck(newDeck), card)
+  }
+
   /** Creates a new deck with a card inserted at given index
     * @param index
     *   \- index to insert the card at

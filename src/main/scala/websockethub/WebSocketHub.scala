@@ -17,6 +17,8 @@ trait WebSocketHub {
   def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
+  def sendToHost(message: String): IO[Unit]
+  def receiveFromHost(): IO[String]
   def endGame(): IO[Unit]
 
   def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]]
@@ -131,6 +133,16 @@ object WebSocketHub {
           queue.offer(WebSocketFrame.Close())
         }.void
       )
+
+    override def sendToHost(message: Message): IO[Unit] = ???
+
+    override def receiveFromHost(): IO[String] = ???
+    /*  Stream
+        .repeatEval(systemQueue.take)
+        .collectFirst({ case (id, message) if id == "host" => message })
+        .map(_.replaceAll("\n", "").trim.toLowerCase)
+        .compile
+        .lastOrError*/
   }
 
 }

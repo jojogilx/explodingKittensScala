@@ -1,7 +1,7 @@
 package rooms
 
 import cats.effect.std.Queue
-import cats.effect.{Deferred, IO, Ref}
+import cats.effect._
 import cats.implicits.catsSyntaxApplicativeId
 import game.Game
 import org.http4s.websocket.WebSocketFrame

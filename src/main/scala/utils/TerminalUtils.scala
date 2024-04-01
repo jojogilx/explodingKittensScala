@@ -53,10 +53,10 @@ object TerminalUtils {
   def diedMessage(player: Player): String = s"\n$SkullEmojiUnicode " +
     s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
 
-  def getStringWithIndex(list: List[Any]): String =
+  def getStringWithIndex(list: List[Any], separator: String): String =
     s"${
       list.zipWithIndex.foldLeft("\n") { case (acc, (item, i)) =>
-        acc ++ s"${i + 1}. $item      "
+        acc ++ s"${i + 1}. $item$separator"
       }
     }"
 
