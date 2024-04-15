@@ -53,7 +53,7 @@ object Lobby extends IOApp {
                     if (rooms.contains(roomName.trim)) BadRequest("Room already exists")
                     else {
                       for {
-                        room <- Room.create(,roomName.trim)
+                        room <- Room.create(roomName.trim)
                         _    <- roomsRef.update(rooms => rooms + (roomName.trim -> room))
                         res  <- Ok("Room created")
                       } yield res
