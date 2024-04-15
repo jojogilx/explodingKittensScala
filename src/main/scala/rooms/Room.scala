@@ -9,7 +9,7 @@ import players.Player._
 import utils.TerminalUtils.{GreenText, RedText, ResetText}
 import websockethub.WebSocketHub
 
-case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: Int, stateRef: Ref[IO, RoomState]) {
+case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: Ref[IO, RoomState]) {
 
   /**
    * Joins a player to this room
@@ -22,7 +22,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
       currentPlayers <- stateRef.get.map(_.players)
       started <- stateRef.get.map(_.started)
       res <-
-        if (currentPlayers.length == nPlayers) Left("This room is full").pure[IO]
+        if (currentPlayers.length == 5) Left("This room is full").pure[IO]
         else if (started) Left("The game already started").pure[IO]
         else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
         else {
@@ -49,7 +49,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
     for {
       nCurrentPlayers <- stateRef.get.map(_.players.length)
       res <-
-        if (nPlayers != nCurrentPlayers) Left(s"Not enough players ($nCurrentPlayers/$nPlayers)").pure[IO]
+        if (5 != nCurrentPlayers) Left(s"Not enough players ($nCurrentPlayers/5)").pure[IO]
         else stateRef.update(roomState => roomState.copy(started = true)) *> Right(game.initialize()).pure[IO]
     } yield res
 
@@ -68,9 +68,9 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, nPlayers: 
    */
   def getString: IO[String] = for {
     room <- stateRef.get
-    color = if (room.started || room.players.length == nPlayers) RedText else GreenText
+    color = if (room.started || room.players.length == 5) RedText else GreenText
 
-  } yield s"$color $name,  Players(${room.players.length}/$nPlayers): ${room.players}$ResetText\n"
+  } yield s"$color $name,  Players(${room.players.length}/5): ${room.players}$ResetText\n"
 
 
 }
@@ -83,12 +83,12 @@ object Room {
    * @param name name of the room
    * @return room created
    */
-  def create(nPlayers: Int, name: String): IO[Room] = {
+  def create(name: String): IO[Room] = {
     for {
       webSocketHub <- WebSocketHub.of
-      game         <- Game.create(nPlayers, webSocketHub)
+      game         <- Game.create(5, webSocketHub)
       state        <- Ref.of[IO, RoomState](RoomState(List.empty, started = false))
-    } yield new Room(webSocketHub, game, name, nPlayers, state)
+    } yield new Room(webSocketHub, game, name, state)
   }
 }
 
