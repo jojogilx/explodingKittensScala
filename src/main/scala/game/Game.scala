@@ -2,6 +2,7 @@ package game
 
 import card._
 import card.Deck._
+import card.Recipes.{getRecipeAt, getRecipesList}
 import cats.effect.{Deferred, IO, Ref}
 import cats.implicits._
 import gamestate._
@@ -14,7 +15,6 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 case class Game(
-    nPlayers: Int,
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
     stateManager: StateManager
@@ -35,6 +35,7 @@ case class Game(
         gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
       }
     } yield ()) *> webSocketHub.broadcast(colorSystemMessage(s"$playerID joined the game"))
+
 
   /** Callback that warns the game the player disconnected
     * @param playerID
@@ -160,10 +161,19 @@ case class Game(
     for {
       _      <- webSocketHub.broadcast(gameTitleBanner)
       _      <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
-      _      <- handCards()
+      recipe <- recipePrompt()
+      nPlayers <- awaitStart(recipe.minPlayers, recipe.maxPlayers)
+      _      <- handCards(nPlayers, recipe)
       player <- setRandomPlayerNext()
       _      <- gameLoop(player)
     } yield ()
+  }
+
+  def awaitStart(minPlayers: Int, maxPlayers: Int): IO[Int] = {
+    // await players join
+    // await host says start > if min < players join < max starts and return
+    // would this block? or do i need a deferred > check
+    ???
   }
 
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
@@ -586,10 +596,10 @@ case class Game(
   /** Removes all bombs and defuses from the deck and deals the players 7 cards + a defuse then adds the bombs back and
     * shuffles the deck
     */
-  private def handCards(): IO[Unit] = {
+  private def handCards(nPlayers: Int, recipe: Recipe): IO[Unit] = {
     webSocketHub.broadcast(colorSystemMessage(s"Handing cards...\n")) *> {
       gameStateRef.update { gameState =>
-        val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, NopeSauce.defusesOnStart * nPlayers)
+        val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, recipe.defusesOnStart * nPlayers)
         val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
           case ((cards, map), p) =>
             val (hand, newDrawDeck) = cards.splitAt(7)
@@ -1006,7 +1016,9 @@ case class Game(
     else webSocketHub.sendToHost(colorErrorMessage("Invalid input")) *> recipePrompt()
 
   } yield recipe
+
 }
+
 
 
 
@@ -1024,7 +1036,7 @@ object Game {
       nPlayers: Int,
       webSocketHub: WebSocketHub
   ): IO[Game] = {
-    val initialDrawDeck    = initFromRecipe(NopeSauce, nPlayers)
+    val initialDrawDeck    = initFromRecipe(NopeSauce, nPlayers) //TODO: noooo, move this to the recipe choser
     val initialDiscardDeck = Deck(List.empty)
     val currentPlayerIndex = -1
     val playersList        = List.empty
@@ -1039,9 +1051,9 @@ object Game {
       orderRight = true
     )
 
-    for {
+    for { // would it make sense to initialize the game here?
       stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
-    } yield new Game(nPlayers, webSocketHub, gameStateRef, stateManager)
+    } yield new Game(webSocketHub, gameStateRef, stateManager)
   }
 }

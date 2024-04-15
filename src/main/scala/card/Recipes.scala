@@ -481,7 +481,10 @@ case object CatFight extends Recipe {
   override val cardsOnStart: Int => Int = _ => 2
 }
 
-val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole, BlackHole2P, CardHoarders, CatFight, DangerMode,  ExplodingKittensClassicMode, EyeForAnEye, LightningKittens,Meowsochist,MindGames,NopeSauce,PowerPlay,PowerPlay2P, SharingIsCaring,SharingIsCaring2P, StickyFingers, ThePurrage)
+object Recipes {
+  val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole, BlackHole2P, CardHoarders, CatFight, DangerMode, ExplodingKittensClassicMode, EyeForAnEye, LightningKittens, Meowsochist, MindGames, NopeSauce, PowerPlay, PowerPlay2P, SharingIsCaring, SharingIsCaring2P, StickyFingers, ThePurrage)
 
-def getRecipesList: List[String] = recipesList.map(_.toString)
-def getRecipeAt(index: Int): Option[Recipe] = if(1 to recipesList.length contains index) recipesList(index).some else None
+  def getRecipesList: List[String] = recipesList.map(_.toString)
+
+  def getRecipeAt(index: Int): Option[Recipe] = if (1 to recipesList.length contains index) recipesList(index).some else None
+}

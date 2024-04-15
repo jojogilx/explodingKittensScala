@@ -39,27 +39,27 @@ object Lobby extends IOApp {
               } yield response
 
 
-            // curl GET http://127.0.0.1:8080/create/room1/2
-            case GET -> Root / "create" / roomName / nPlayers =>
-              for {
-                rooms <- roomsRef.get.map(_.keys.toList)
-                res <-
-                  if (rooms.contains(roomName.trim)) BadRequest("Room already exists")
-                  else {
-                    nPlayers.toIntOption match {
-                      case Some(value) if 2 to 5 contains value =>
-                        for {
-                          room <- Room.create(value, roomName.trim)
-                          _    <- roomsRef.update(rooms => rooms + (roomName.trim -> room))
-                          res  <- Accepted("Room created")
-                        } yield res
-
-                      case _ => BadRequest("Number of players invalid (2-5 players only)")
+            /*
+            curl -X POST \
+            -d 'name=room1' \
+            http://127.0.0.1:8080/create
+             */
+            case req @ POST -> Root / "create" =>
+              req.decode[UrlForm] { form =>
+                val roomName = form.getFirst("name").getOrElse("")
+                for {
+                  rooms <- roomsRef.get.map(_.keys.toList)
+                  res <-
+                    if (rooms.contains(roomName.trim)) BadRequest("Room already exists")
+                    else {
+                      for {
+                        room <- Room.create(roomName.trim)
+                        _    <- roomsRef.update(rooms => rooms + (roomName.trim -> room))
+                        res  <- Ok("Room created")
+                      } yield res
                     }
-
-                  }
-
-              } yield res
+                } yield res
+              }
 
             // websocat ws://127.0.0.1:8080/join/room1/player1
             case GET -> Root / "join" / roomName / playerID =>
@@ -75,7 +75,7 @@ object Lobby extends IOApp {
                         .fold(BadRequest("error"))(room =>
                           room.join(playerID.trim, q).flatMap {
                             case Left(value) => BadRequest(value)
-                            case Right(_) =>
+                            case Right(_) => //this doesn't work because
                               wsb
                                 .build(
                                   receive = _.filter({
