@@ -34,7 +34,7 @@ object TerminalUtils {
 
   val gameTitleBanner: String = s"$CatFaceEmojiUnicode$CatBodyEmojiUnicode$OrangeText$Bold " +
     s"EXPLODING$ResetText$Bold KITTENS$ResetText - ${RedText}Scala Edition$ResetText " +
-    s"$BombEmojiUnicode$FireEmojiUnicode\n\n"
+    s"$BombEmojiUnicode$FireEmojiUnicode\n"
 
 
   private val SystemMessageColor = CyanText
@@ -50,13 +50,13 @@ object TerminalUtils {
 
   def colorErrorMessage(error: String): String = colorMessage(ErrorColor, error)
 
-  def diedMessage(player: Player): String = s"\n$SkullEmojiUnicode " +
+  def diedMessage(player: Player): String = s"$SkullEmojiUnicode " +
     s"${colorPlayerMessage(player, " died")} $SkullEmojiUnicode\n"
 
   def getStringWithIndex(list: List[Any], separator: String): String =
     s"${
-      list.zipWithIndex.foldLeft("\n") { case (acc, (item, i)) =>
-        acc ++ s"${i + 1}. $item$separator"
+      list.zipWithIndex.foldLeft("") { case (acc, (item, i)) =>
+        acc ++ s"${i + 1}. ${item.toString}$separator"
       }
     }"
 

@@ -7,11 +7,13 @@ import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
 import fs2._
 
+import scala.concurrent.duration.DurationInt
+
 trait WebSocketHub {
   type Message = String
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
 
-  def sendToPlayer(player: PlayerID, message: Message): IO[Unit]
+  def sendToPlayer(player: PlayerID)(message: Message): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
   def sendToGame(playerID: PlayerID, message: Message): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
@@ -28,7 +30,7 @@ trait WebSocketHub {
 
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
-    hostRef<- Ref.of[IO, String]("")
+    hostRef          <- Ref.of[IO, String]("")
     stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame], IO[Unit])]](Map.empty)
     systemQueue      <- Queue.unbounded[IO, (PlayerID, String)]
     pendingInputsRef <- Ref.of[IO, Map[PlayerID, Deferred[IO, String]]](Map.empty)
@@ -42,43 +44,44 @@ object WebSocketHub {
     ): IO[Unit] = {
       println(s"$player connected")
 
-      hostRef.get.map(_.isBlank).flatMap(b => if (b) hostRef.update(_ => player) *> IO.println(s"host is $player") else IO.unit
-      ) *> stateRef.update(_ + (player -> (queue, onDisconnected)))
+      hostRef.get
+        .map(_.isBlank)
+        .flatMap(b => if (b) hostRef.update(_ => player) *> IO.println(s"host is $player") else IO.unit) *> stateRef
+        .update(_ + (player -> (queue, onDisconnected)))
     }
 
-    override def sendToPlayer(playerID: PlayerID, message: Message): IO[Unit] = {
-      val tokensMessage = message.split("\n")
+    override def sendToPlayer(playerID: PlayerID)(message: Message): IO[Unit] = {
 
       stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
           case Some((queue, _)) =>
-            tokensMessage.map(msg => queue.offer(WebSocketFrame.Text(msg))).toList.traverse_(identity)
+            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg)) *> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
           case None =>
             IO.println(s"Message queue not found for player $playerID")
         }
       }
     }
 
+
+
     override def broadcast(message: Message): IO[Unit] = {
-      val tokensMessage = message.split("\n")
+
 
       stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
-          tokensMessage.map(msg => queue.offer(WebSocketFrame.Text(msg))).toList.traverse_(identity)
+          message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg))*> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
         }.void
       )
     }
 
     override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
-      val tokensMessage = message.split("\n")
-
       stateRef.get.flatMap(map =>
         map
           .filterNot(_._1 == playerID)
           .values
           .toList
           .traverse { case (queue, _) =>
-            tokensMessage.map(msg => queue.offer(WebSocketFrame.Text(msg))).toList.traverse_(identity)
+            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg))*> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
           }
           .void
       )
@@ -134,7 +137,8 @@ object WebSocketHub {
       )
 
     override def sendToHost(message: Message): IO[Unit] =
-      hostRef.get.flatMap(playerID => sendToPlayer(playerID, message))
+      hostRef.get.flatMap(playerID => sendToPlayer(playerID)(message)
+      )
 
     override def receiveFromHost(): IO[String] =
       hostRef.get.flatMap(playerID => getGameInput(playerID))

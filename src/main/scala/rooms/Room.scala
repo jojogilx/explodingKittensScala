@@ -50,7 +50,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       nCurrentPlayers <- stateRef.get.map(_.players.length)
       res <-
         if (0 == nCurrentPlayers) Left(s"Not enough players ($nCurrentPlayers/0)").pure[IO]
-        else stateRef.update(roomState => roomState.copy(started = true)) *> Right(game.initialize()).pure[IO]
+        else /*stateRef.update(roomState => roomState.copy(started = true)) *> */Right(game.initialize()).pure[IO]
     } yield res
 
   /**
