@@ -44,6 +44,8 @@ object Lobby extends IOApp {
             -d 'name=room1' \
             http://127.0.0.1:8080/create
              */
+
+            //maybe initialize game on create room
             case req @ POST -> Root / "create" =>
               req.decode[UrlForm] { form =>
                 val roomName = form.getFirst("name").getOrElse("")
@@ -124,7 +126,7 @@ object Lobby extends IOApp {
       EmberServerBuilder
         .default[IO]
         .withHost(ipv4"127.0.0.1")
-        .withPort(port"8025")
+        .withPort(port"8080")
         .withIdleTimeout(5.minutes)
         .withHttpWebSocketApp(_)
         .build
