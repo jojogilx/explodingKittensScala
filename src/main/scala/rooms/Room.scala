@@ -1,7 +1,7 @@
 package rooms
 
-import cats.effect.std.Queue
 import cats.effect._
+import cats.effect.std.Queue
 import cats.implicits.catsSyntaxApplicativeId
 import game.Game
 import org.http4s.websocket.WebSocketFrame
@@ -9,7 +9,13 @@ import players.Player._
 import utils.TerminalUtils.{GreenText, RedText, ResetText}
 import websockethub.WebSocketHub
 
+
+
+
 case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: Ref[IO, RoomState]) {
+
+  //todo: restructure so it asks game which is the nPlayers max & min
+
 
   /**
    * Joins a player to this room

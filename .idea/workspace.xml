@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="restructured start. game is started after waiting for players">
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/sbt.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/scala_compiler.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.sbt" beforeDir="false" afterPath="$PROJECT_DIR$/build.sbt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="SBT">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="explodingkittens" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="MIXED" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;jojogilx&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">
+    <option name="selectedUrlAndAccountId">
+      <UrlAndAccount>
+        <option name="accountId" value="89d88135-77e5-4bb5-81bb-c151c881e040" />
+        <option name="url" value="https://github.com/jojogilx/explodingKittensScala.git" />
+      </UrlAndAccount>
+    </option>
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectCodeStyleSettingsMigration">
+    <option name="version" value="2" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="2dJE4ix0kgqrB3kmXcavrevsGOX" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Application.Lobby.executor": "Run",
+    "Application.Main.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "Restructuring-handle-cards",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/jmorais/Desktop/Bootcamp/Backend/Scala Project/ExplodingKittens",
+    "project.structure.last.edited": "Problems",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.2",
+    "settings.build.tools.auto.reload": "ALL",
+    "settings.editor.selected.configurable": "sbt.project.settings.configurable"
+  }
+}]]></component>
+  <component name="RunManager" selected="Application.Lobby">
+    <configuration name="Lobby" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="game.Lobby" />
+      <module name="ExplodingKittens" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="game.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Main" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="game.Main" />
+      <module name="ExplodingKittens" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="game.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.Lobby" />
+        <item itemvalue="Application.Main" />
+        <item itemvalue="Application.Lobby" />
+        <item itemvalue="Application.Main" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="" />
+      <created>1709717593396</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1709717593396</updated>
+    </task>
+    <task id="LOCAL-00029" summary="changes to side structures">
+      <option name="closed" value="true" />
+      <created>1710345786330</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1710345786330</updated>
+    </task>
+    <task id="LOCAL-00030" summary="state initial">
+      <option name="closed" value="true" />
+      <created>1710345796203</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1710345796203</updated>
+    </task>
+    <task id="LOCAL-00031" summary="restructured game to use refs &#10;&#10;-&gt; game not fully working&#10;-&gt; websockethub not sending to player">
+      <option name="closed" value="true" />
+      <created>1710348054141</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1710348054141</updated>
+    </task>
+    <task id="LOCAL-00032" summary="Starting refactoring to command">
+      <option name="closed" value="true" />
+      <created>1710350934517</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1710350934517</updated>
+    </task>
+    <task id="LOCAL-00033" summary="refactoring to command">
+      <option name="closed" value="true" />
+      <created>1710414336132</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1710414336132</updated>
+    </task>
+    <task id="LOCAL-00034" summary="back to refs">
+      <option name="closed" value="true" />
+      <created>1710416937553</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1710416937553</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Game Working with refs.&#10;&#10;&gt; sometimes players lose connection&#10;&gt; missing handle lost comm&#10;&gt; some cards are buggy">
+      <option name="closed" value="true" />
+      <created>1710428246156</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1710428246156</updated>
+    </task>
+    <task id="LOCAL-00036" summary="fixed buggy input">
+      <option name="closed" value="true" />
+      <created>1710431930085</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1710431930085</updated>
+    </task>
+    <task id="LOCAL-00037" summary="fixed swap top and bottom card">
+      <option name="closed" value="true" />
+      <created>1710433393514</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1710433393514</updated>
+    </task>
+    <task id="LOCAL-00038" summary="callback for disconnected ! errors">
+      <option name="closed" value="true" />
+      <created>1710436300324</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1710436300324</updated>
+    </task>
+    <task id="LOCAL-00039" summary="game handling connections lost and players leaving&#10;&#10;2nd milestone completed">
+      <option name="closed" value="true" />
+      <created>1710759663764</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1710759663764</updated>
+    </task>
+    <task id="LOCAL-00040" summary="Room object">
+      <option name="closed" value="true" />
+      <created>1710762734633</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1710762734633</updated>
+    </task>
+    <task id="LOCAL-00041" summary="Room creation request done">
+      <option name="closed" value="true" />
+      <created>1710764387646</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1710764387646</updated>
+    </task>
+    <task id="LOCAL-00042" summary="Rooms hosting their game">
+      <option name="closed" value="true" />
+      <created>1710770636280</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1710770636280</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Lobby print rooms">
+      <option name="closed" value="true" />
+      <created>1710772803165</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1710772803165</updated>
+    </task>
+    <task id="LOCAL-00044" summary="print card description done">
+      <option name="closed" value="true" />
+      <created>1710774577145</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1710774577145</updated>
+    </task>
+    <task id="LOCAL-00045" summary="fixed game receiving input from anyone">
+      <option name="closed" value="true" />
+      <created>1710780938249</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1710780938249</updated>
+    </task>
+    <task id="LOCAL-00046" summary="fixed websocket timing out, 3rd milestone completed">
+      <option name="closed" value="true" />
+      <created>1710838336806</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1710838336806</updated>
+    </task>
+    <task id="LOCAL-00047" summary="nope card implemented">
+      <option name="closed" value="true" />
+      <created>1710842124752</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1710842124752</updated>
+    </task>
+    <task id="LOCAL-00048" summary="cat cards implemented&#10;fixed bug where players were being dealt the same hand">
+      <option name="closed" value="true" />
+      <created>1710856143968</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1710856143968</updated>
+    </task>
+    <task id="LOCAL-00049" summary="deck test rollback">
+      <option name="closed" value="true" />
+      <created>1710866105002</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1710866105002</updated>
+    </task>
+    <task id="LOCAL-00050" summary="added some doc to Game">
+      <option name="closed" value="true" />
+      <created>1710867783978</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1710867783979</updated>
+    </task>
+    <task id="LOCAL-00051" summary="more doc to Game">
+      <option name="closed" value="true" />
+      <created>1710868698964</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1710868698964</updated>
+    </task>
+    <task id="LOCAL-00052" summary="finished doc&#10;&gt; fixed bug causing players to bug when players incorrectly join the room">
+      <option name="closed" value="true" />
+      <created>1710932309451</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1710932309451</updated>
+    </task>
+    <task id="LOCAL-00053" summary="nope properly implemented">
+      <option name="closed" value="true" />
+      <created>1710950695798</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1710950695798</updated>
+    </task>
+    <task id="LOCAL-00054" summary="fixed targeted attack&#10;started to try to warn players of game end">
+      <option name="closed" value="true" />
+      <created>1711016083061</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1711016083061</updated>
+    </task>
+    <task id="LOCAL-00055" summary="fixed nope card">
+      <option name="closed" value="true" />
+      <created>1711039177168</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1711039177168</updated>
+    </task>
+    <task id="LOCAL-00056" summary="fixed stealing cards">
+      <option name="closed" value="true" />
+      <created>1711102904146</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1711102904146</updated>
+    </task>
+    <task id="LOCAL-00057" summary="closed players on game end.&#10;4th milestone completed">
+      <option name="closed" value="true" />
+      <created>1711108081611</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1711108081611</updated>
+    </task>
+    <task id="LOCAL-00058" summary="removed extra bombs">
+      <option name="closed" value="true" />
+      <created>1711108482507</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1711108482507</updated>
+    </task>
+    <task id="LOCAL-00059" summary="fix bug where stealing one card would remove all cards of that type">
+      <option name="closed" value="true" />
+      <created>1711114914921</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1711114914921</updated>
+    </task>
+    <task id="LOCAL-00060" summary="putting bombs back on deck after defusing">
+      <option name="closed" value="true" />
+      <created>1711118470893</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1711118470893</updated>
+    </task>
+    <task id="LOCAL-00061" summary="shuffled catomic bomb">
+      <option name="closed" value="true" />
+      <created>1711122029075</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1711122029075</updated>
+    </task>
+    <task id="LOCAL-00062" summary="added videos and screenshots">
+      <option name="closed" value="true" />
+      <created>1711364125570</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1711364125570</updated>
+    </task>
+    <task id="LOCAL-00063" summary="corrected reverse card">
+      <option name="closed" value="true" />
+      <created>1711384545034</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1711384545034</updated>
+    </task>
+    <task id="LOCAL-00064" summary="added broadcast of deck size and last card played">
+      <option name="closed" value="true" />
+      <created>1711463446827</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1711463446827</updated>
+    </task>
+    <task id="LOCAL-00065" summary="added card objects for all cards in recipes. added presentation">
+      <option name="closed" value="true" />
+      <created>1711531580491</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1711531580492</updated>
+    </task>
+    <task id="LOCAL-00066" summary="added more recipes">
+      <option name="closed" value="true" />
+      <created>1711618021150</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1711618021150</updated>
+    </task>
+    <task id="LOCAL-00067" summary="added more recipes">
+      <option name="closed" value="true" />
+      <created>1711623282183</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1711623282183</updated>
+    </task>
+    <task id="LOCAL-00068" summary="all recipes added">
+      <option name="closed" value="true" />
+      <created>1711624330588</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1711624330588</updated>
+    </task>
+    <task id="LOCAL-00069" summary="removed previous nope sauce map">
+      <option name="closed" value="true" />
+      <created>1711638648286</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1711638648286</updated>
+    </task>
+    <task id="LOCAL-00070" summary="added ??? cards">
+      <option name="closed" value="true" />
+      <created>1711639884547</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1711639884547</updated>
+    </task>
+    <task id="LOCAL-00071" summary="changed player turn to include player instead of fetching it">
+      <option name="closed" value="true" />
+      <created>1711640736659</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1711640736659</updated>
+    </task>
+    <task id="LOCAL-00072" summary="prompt for recipe choice">
+      <option name="closed" value="true" />
+      <created>1711977542659</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1711977542659</updated>
+    </task>
+    <task id="LOCAL-00073" summary="small changes to recipes and change get to post">
+      <option name="closed" value="true" />
+      <created>1713172886944</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1713172886944</updated>
+    </task>
+    <task id="LOCAL-00074" summary="small changes to recipes and change get to post">
+      <option name="closed" value="true" />
+      <created>1713173009261</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1713173009261</updated>
+    </task>
+    <task id="LOCAL-00075" summary="small changes to recipes and change get to post">
+      <option name="closed" value="true" />
+      <created>1713173025569</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1713173025569</updated>
+    </task>
+    <task id="LOCAL-00076" summary="added host to websocketHub and splitting multiple lines">
+      <option name="closed" value="true" />
+      <created>1713523278671</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1713523278671</updated>
+    </task>
+    <task id="LOCAL-00077" summary="restructured start. game is started after waiting for players">
+      <option name="closed" value="true" />
+      <created>1713541479083</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1713541479083</updated>
+    </task>
+    <option name="localTasksCounter" value="78" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="more doc to Game" />
+    <MESSAGE value="finished doc" />
+    <MESSAGE value="finished doc&#10;&gt; fixed bug causing players to bug when players incorrectly join the room" />
+    <MESSAGE value="nope properly implemented" />
+    <MESSAGE value="fixed targeted attack&#10;started to try to warn players of game end" />
+    <MESSAGE value="fixed nope card" />
+    <MESSAGE value="fixed stealing cards" />
+    <MESSAGE value="closed players on game end.&#10;4th milestone completed" />
+    <MESSAGE value="removed extra bombs" />
+    <MESSAGE value="fix bug where stealing one card would remove all cards of that type" />
+    <MESSAGE value="putting bombs back on deck after defusing" />
+    <MESSAGE value="shuffled catomic bomb" />
+    <MESSAGE value="added videos and screenshots" />
+    <MESSAGE value="corrected reverse card" />
+    <MESSAGE value="added broadcast of deck size and last card played" />
+    <MESSAGE value="added card objects for all cards in recipes. added presentation" />
+    <MESSAGE value="added more recipes" />
+    <MESSAGE value="all recipes added" />
+    <MESSAGE value="removed previous nope sauce map" />
+    <MESSAGE value="added ??? cards" />
+    <MESSAGE value="changed player turn to include player instead of fetching it" />
+    <MESSAGE value="prompt for recipe choice" />
+    <MESSAGE value="small changes to recipes and change get to post" />
+    <MESSAGE value="added host to websocketHub and splitting multiple lines" />
+    <MESSAGE value="restructured start. game is started after waiting for players" />
+    <option name="LAST_COMMIT_MESSAGE" value="restructured start. game is started after waiting for players" />
+  </component>
+</project>

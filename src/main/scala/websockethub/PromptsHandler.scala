@@ -1,14 +1,13 @@
 package websockethub
 
-import card.Recipe
+import card.{CatCard, Defuse, ExplodingKitten, Nope, Recipe}
 import card.Recipes.recipesList
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import players.Player
-import players.Player.PlayerID
-import utils.TerminalUtils.{colorErrorMessage, getStringWithIndex}
+import players.Player.{Hand, PlayerID}
+import utils.TerminalUtils.{colorErrorMessage, colorPlayerMessage, getStringWithIndex}
 
-import scala.util.{Failure, Success, Try}
 
 
 case class PromptsHandler(webSocketHub: WebSocketHub) {
@@ -113,5 +112,95 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
           )
       }
     } yield thing
+
+
+  def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] =
+    for {
+      _ <- webSocketHub.sendToPlayer(player.playerID)( s"Your hand is: ${getStringWithIndex(playerHand,"\n")}")
+      _ <- webSocketHub.sendToPlayer(player.playerID)(colorPlayerMessage(player, s", do you wish to play a card?"))
+      _ <- webSocketHub.sendToPlayer(
+        player.playerID)(
+        "Enter the index of the card you want to play (n to Pass or index -h to get card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
+      )
+
+      answer <- webSocketHub.getGameInput(player.playerID)
+      result <- answer match {
+        case "n" => None.pure[IO]
+        case s"$index -h" =>
+          index.toIntOption.map(_ - 1) match {
+            case Some(i) if playerHand.indices contains i =>
+              webSocketHub.sendToPlayer(
+                player.playerID)(
+                colorErrorMessage(playerHand(i).toStringDescription)
+              ) *> playCardsPrompt(
+                player, playerHand
+              )
+            case None =>
+              webSocketHub.sendToPlayer(
+                player.playerID)(
+                colorErrorMessage("Invalid index (e.g.: 1 -h)")
+              ) *> playCardsPrompt(
+                player, playerHand
+              )
+          }
+        case s"${c1},${c2}" =>
+          {
+            (c1.toIntOption.map(_ - 1), c2.toIntOption.map(_ - 1)) match {
+              case (Some(i),Some(j)) if List(i,j).forall(i => {
+                playerHand.indices.contains(i) && (playerHand(i) match {
+                  case _: CatCard => true
+                  case _          => false
+                })
+              }) =>
+                Some(List(i,j)).pure[IO]
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID)(
+                  "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
+                ) *> playCardsPrompt(player,playerHand)
+            }
+          } *> None.pure[IO]
+        case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
+          {
+            List(c1.toInt - 1, c2.toInt - 1, c3.toInt - 1) match {
+              case list if list.forall(i => {
+                playerHand.indices.contains(i) && (playerHand(i) match {
+                  case _: CatCard => true
+                  case _          => false
+                })
+              }) =>
+                Some(list).pure[IO]
+              case _ =>
+                webSocketHub.sendToPlayer(
+                  player.playerID)(
+                  "Invalid input, play 3 indices of cat cards (e.g.: 1,2,3)"
+                ) *> playCardsPrompt(player,playerHand)
+            }
+          } *> None.pure[IO]
+        case x if x.toIntOption.isDefined =>
+          x.toInt - 1 match {
+            case i if playerHand.indices contains i =>
+              playerHand(i) match {
+                case ExplodingKitten | Defuse | Nope =>
+                  webSocketHub.sendToPlayer(
+                    player.playerID)(
+                    colorErrorMessage("You can't play this card right now")
+                  ) *> playCardsPrompt(player,playerHand)
+                case _ => Some(List(i)).pure[IO]
+              }
+
+            case _ =>
+              webSocketHub.sendToPlayer(player.playerID)( colorErrorMessage("Invalid index")) *> playCardsPrompt(
+                player,playerHand
+              )
+          }
+
+        case _ =>
+          webSocketHub.sendToPlayer(player.playerID)(colorErrorMessage("Invalid input")) *> playCardsPrompt(
+            player,playerHand
+          )
+      }
+    } yield result
+
 
 }

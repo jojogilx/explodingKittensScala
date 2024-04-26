@@ -163,7 +163,6 @@ case class Game(
       _      <- webSocketHub.broadcast(gameTitleBanner)
       _      <- webSocketHub.broadcast(colorSystemMessage(s"Initializing..."))
       recipe <- prompter.recipePrompt()
-      _ = println(s"RECIPE is $recipe")
       _ <- awaitStart(recipe.minPlayers, recipe.maxPlayers)
       nPlayers <- gameStateRef.get.map(_.players.length)
       _      <- handCards(nPlayers, recipe)
@@ -207,17 +206,20 @@ case class Game(
     _         <- IO.println(s"draw: ${gameState.drawDeck}")       //
   } yield ()
 
-  private def playCards(player: Player): IO[Option[List[Int]]] =
+/*  private def playCards(player: Player): IO[Option[List[Int]]] =
     for {
       hand <- getHandWithIndex(player.playerID)
       _    <- webSocketHub.sendToPlayer(player.playerID)( s"Your hand is: $hand")
 
-      canPlayCards <- canPlayAnything(player.playerID)
+      canPlayCards = canPlayAnything(player.playerID)
+
       cards <-
         if (canPlayCards) playCardsPrompt(player) // Does player want to play a card?
         else webSocketHub.sendToPlayer(player.playerID)( "You don't have any cards you can play") *> IO(None)
 
     } yield cards
+
+*/
 
   private def playCardsPrompt(player: Player): IO[Option[List[Int]]] =
     for {
@@ -331,17 +333,21 @@ case class Game(
               .fold("")(card => s", last played card was $card")}")
         )
 
-        hand <- getHandWithIndex(playerID)
-        _    <- webSocketHub.sendToPlayer(playerID)( s"Your hand is: $hand")
+        //loop this until answer is no
+        _ <- IO.println(0)
+        hand <-  gameStateRef.get.map { gameState => gameState.playersHands.find{case (`playerID`,_) => true}.map(_._2)}
+        _ <- IO.println(1)
+        playOrPass <- hand.fold(none[List[Int]].pure[IO])(hand => if(canPlayAnything(hand)) IO.println("a") *> prompter.playCardsPrompt(currentPlayer, hand).flatTap(_ => IO.println("b"))
+        else
+          webSocketHub.sendToPlayer(playerID)("You don't have any cards you can play") *> IO.none)
+        _ <- IO.println(2)
 
-        canPlayCards <- canPlayAnything(playerID)
-        playOrPass <-
-          if (canPlayCards)
-            playOrPassPrompt(currentPlayer) // Does player want to play a card?
-          else webSocketHub.sendToPlayer(playerID)("You don't have any cards you can play") *> IO(None)
-        playerSkipped <- playOrPass.fold(false.pure[IO])(i => {
-          handleCardPlayed(currentPlayer, playCard(i))
+
+        playerSkipped <- playOrPass.fold(false.pure[IO])(list => list.foldLeft(false.pure[IO]) { (acc, i) =>
+          acc.combineK(handleCardPlayed(currentPlayer, playCard(i)))
         }) // If card played, does player skip draw?
+        //
+
         _ <-
           if (!playerSkipped) {
             for {
@@ -370,16 +376,11 @@ case class Game(
     )
     .void
 
-  private def canPlayAnything(playerID: PlayerID): IO[Boolean] = {
-
-    gameStateRef.get.map(gameState => {
-      val hand = gameState.playersHands(playerID)
-      hand.nonEmpty && !hand.forall(_ match {
-        case ExplodingKitten | Defuse | Nope => true
-        case _                               => false
-      })
+  private def canPlayAnything(hand: Hand): Boolean =
+    hand.nonEmpty && !hand.forall(_ match {
+      case ExplodingKitten | Defuse | Nope => true
+      case _                               => false
     })
-  }
 
   /** Prompt that asks if and which card the player wants to play
     * @param player
