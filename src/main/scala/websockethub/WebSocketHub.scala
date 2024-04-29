@@ -1,18 +1,17 @@
 package websockethub
 
-import cats.effect.{Deferred, IO, Ref}
 import cats.effect.std.Queue
+import cats.effect.{Deferred, IO, Ref}
 import cats.implicits.{catsSyntaxOptionId, toFoldableOps, toTraverseOps}
+import fs2._
 import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
-import fs2._
 
-import scala.concurrent.duration.DurationInt
+
 
 trait WebSocketHub {
   type Message = String
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
-
   def sendToPlayer(player: PlayerID)(message: Message): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
   def sendToGame(playerID: PlayerID, message: Message): IO[Unit]

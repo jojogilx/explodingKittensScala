@@ -4,6 +4,7 @@ import cats.effect._
 import cats.effect.std.Queue
 import cats.implicits.catsSyntaxApplicativeId
 import game.Game
+import io.circe.syntax.EncoderOps
 import org.http4s.websocket.WebSocketFrame
 import players.Player._
 import utils.TerminalUtils.{GreenText, RedText, ResetText}
@@ -27,15 +28,16 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
     for {
       currentPlayers <- stateRef.get.map(_.players)
       started <- stateRef.get.map(_.started)
-      res <-
-        if (currentPlayers.length == 5) Left("This room is full").pure[IO]
+      res <- if(playerID.isEmpty) Left("no player Id").pure[IO]
+        else if (currentPlayers.length == 5) Left("This room is full").pure[IO]
         else if (started) Left("The game already started").pure[IO]
         else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
         else {
           for {
             _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
-            _ <- stateRef.update(roomState => roomState.copy(players = playerID :: roomState.players))
+            state <- stateRef.updateAndGet(roomState => roomState.copy(players = playerID :: roomState.players))
             _ <- game.joinGame(playerID)
+            _ <- webSocketHub.broadcast(state.players.asJson.noSpaces)
           } yield Right()
         }
     } yield res

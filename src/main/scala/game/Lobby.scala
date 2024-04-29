@@ -1,22 +1,27 @@
 package game
 
+import card.Recipes
+import card.Recipes.RecipeEncoder
 import cats.effect._
 import cats.effect.std.Queue
-import cats.implicits.toFunctorOps
+import cats.effect.unsafe.implicits.global
+import cats.implicits.{toFunctorOps, toTraverseOps}
 import com.comcast.ip4s.IpLiteralSyntax
+import io.circe.generic.semiauto._
 import io.circe.syntax._
-import io.circe.{Encoder, Json}
+import io.circe._
 import fs2._
 import org.http4s._
-import org.http4s.dsl.io.{BadRequest, _}
+import org.http4s.circe.toMessageSyntax
+import org.http4s.dsl.io._
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.server.middleware.CORS
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import rooms.Room
 
+import java.util.UUID
 import scala.concurrent.duration.DurationInt
-
-import cats.effect.unsafe.implicits.global
 
 object Lobby extends IOApp {
 
@@ -36,14 +41,23 @@ object Lobby extends IOApp {
       )
     }.asJson
 
+
+  case class RoomCreationForm(roomName: String, playerName: String)
+
+  implicit val RoomCreateDecoder = deriveDecoder[RoomCreationForm]
+
+  case class Event(event: String, value: Option[String])
+  implicit val EventDecoder = deriveDecoder[Event]
+  implicit val EventEncoder = deriveEncoder[Event]
+
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
       roomsRef   <- Ref.of[IO, Map[String, Room]](Map.empty)
-      roomsQueue <- Queue.unbounded[IO, WebSocketFrame]
+      roomsQueueRef <- Ref.of[IO, Map[UUID, Queue[IO, WebSocketFrame]]](Map.empty)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
 
-        HttpRoutes
+        val imageService = HttpRoutes
           .of[IO] {
 
             // curl GET http://127.0.0.1:8080/lobby
@@ -64,15 +78,24 @@ object Lobby extends IOApp {
             case GET -> Root / "rooms" =>
               for {
                 map <- roomsRef.get
-                _   <- roomsQueue.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))
+                uuid <- IO.randomUUID
+                q <- Queue.unbounded[IO, WebSocketFrame]
+                _ <- roomsQueueRef.update(_ + (uuid -> q))
+                _ <- roomsQueueRef.get.flatMap(queues =>
+                  queues.values.toList.traverse { queue =>
+                    queue.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))
+                  }.void
+                )
                 w <- wsb.build(
                   receive = _.void,
                   send = Stream
                     .repeatEval(
-                      roomsQueue.take
+                      q.take
                     )
                 )
               } yield w
+
+
             /*
             curl -X POST \
             -d 'name=room1' \
@@ -81,8 +104,8 @@ object Lobby extends IOApp {
 
             // maybe initialize game on create room
             case req @ POST -> Root / "create" =>
-              req.decode[UrlForm] { form =>
-                val roomName = form.getFirst("name").getOrElse("")
+              req.decodeJson[RoomCreationForm].flatTap(IO.println(_)).flatMap { form =>
+                val roomName = form.roomName
                 for {
                   rooms <- roomsRef.get.map(_.keys.toList)
                   res <-
@@ -91,10 +114,10 @@ object Lobby extends IOApp {
                       for {
                         room <- Room.create(roomName.trim)
                         map  <- roomsRef.updateAndGet(rooms => rooms + (roomName.trim -> room))
-                        _    <- roomsQueue.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))
-                        res  <- Ok("Room created")
+                        _    <- roomsQueueRef.get.flatMap(m => m.values.toList.traverse(_.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))))
+                        res  <- Ok()
                       } yield res
-                    }.onError(_ => IO.println("error"))
+                    }
                 } yield res
               }
 
@@ -152,9 +175,16 @@ object Lobby extends IOApp {
                     })
               } yield res
 
+
+            case GET -> Root / "recipes" =>
+              val recipes = Recipes.recipesList.asJson.noSpaces
+              Ok(recipes)
+
           }
           .orNotFound
 
+        CORS.policy
+          .withAllowOriginAll(imageService)
       }
     }
   }

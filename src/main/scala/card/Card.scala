@@ -1,6 +1,9 @@
 package card
 
+import io.circe.syntax.EncoderOps
+import io.circe.{Encoder, Json}
 import utils.TerminalUtils._
+
 
 sealed trait Card {
   val description: String
@@ -236,4 +239,17 @@ case object SuperSkip extends Card with Skipper {
   override val title: String       = "Super Skip"
   override val emoji: String       = "???"
   override val textColor: String   = "col"
+}
+
+
+object Card {
+
+  implicit val CardEncoder: Encoder[Card] = card => {
+    Json.obj(
+      "name" -> card.title.asJson,
+      "description" -> card.description.asJson,
+    )
+  }
+
+
 }

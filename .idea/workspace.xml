@@ -4,19 +4,15 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="restructured start. game is started after waiting for players">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/sbt.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/scala_compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="starting to include FE">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build.sbt" beforeDir="false" afterPath="$PROJECT_DIR$/build.sbt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Card.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Card.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +44,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="Restructuring-handle-cards" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -85,24 +81,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "Application.Lobby.executor": "Run",
-    "Application.Main.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "Restructuring-handle-cards",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "/Users/jmorais/Desktop/Bootcamp/Backend/Scala Project/ExplodingKittens",
-    "project.structure.last.edited": "Problems",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.2",
-    "settings.build.tools.auto.reload": "ALL",
-    "settings.editor.selected.configurable": "sbt.project.settings.configurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Application.Lobby.executor&quot;: &quot;Run&quot;,
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;restructuring-websockets&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/jmorais/Desktop/Bootcamp/Backend/Scala Project/ExplodingKittens&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Problems&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.build.tools.auto.reload&quot;: &quot;ALL&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;sbt.project.settings.configurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Application.Lobby">
     <configuration name="Lobby" type="Application" factoryName="Application" temporary="true">
       <option name="MAIN_CLASS_NAME" value="game.Lobby" />
@@ -147,14 +143,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00029" summary="changes to side structures">
-      <option name="closed" value="true" />
-      <created>1710345786330</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1710345786330</updated>
     </task>
     <task id="LOCAL-00030" summary="state initial">
       <option name="closed" value="true" />
@@ -540,7 +528,15 @@
       <option name="project" value="LOCAL" />
       <updated>1713541479083</updated>
     </task>
-    <option name="localTasksCounter" value="78" />
+    <task id="LOCAL-00078" summary="starting to include FE">
+      <option name="closed" value="true" />
+      <created>1714118954711</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1714118954711</updated>
+    </task>
+    <option name="localTasksCounter" value="79" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -556,7 +552,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="more doc to Game" />
     <MESSAGE value="finished doc" />
     <MESSAGE value="finished doc&#10;&gt; fixed bug causing players to bug when players incorrectly join the room" />
     <MESSAGE value="nope properly implemented" />
@@ -581,6 +576,7 @@
     <MESSAGE value="small changes to recipes and change get to post" />
     <MESSAGE value="added host to websocketHub and splitting multiple lines" />
     <MESSAGE value="restructured start. game is started after waiting for players" />
-    <option name="LAST_COMMIT_MESSAGE" value="restructured start. game is started after waiting for players" />
+    <MESSAGE value="starting to include FE" />
+    <option name="LAST_COMMIT_MESSAGE" value="starting to include FE" />
   </component>
 </project>

@@ -1,8 +1,11 @@
 package card
 
-import cats.implicits.catsSyntaxOptionId
+import io.circe.syntax.EncoderOps
+import io.circe.{Encoder, Json}
 
 import scala.concurrent.duration.{Duration, DurationInt}
+
+
 
 sealed trait Recipe {
   val name: String
@@ -20,11 +23,21 @@ sealed trait Recipe {
     cardCount(1000).map {
       case (card, i) if i > 900 => s"$card x (# players${
         val nP = i - 1000
-        if (nP == 0) ")" else if (nP > 0) s" +$nP)" else s" $nP)"
+        if (nP == 0) ")" else if (nP > 0) s" + $nP)" else s" $nP)"
       }"
       case (card, i) => s"$card x $i"
 
     }.mkString("[",", ","]")
+
+  def getCardMap(): List[(String, Card)] =
+    cardCount(1000).map {
+      case (card, i) if i > 900 => s"# players${
+        val nP = i - 1000
+        if (nP == 0) "" else if (nP > 0) s" + $nP" else s" $nP"
+      }" -> card
+      case (card, i) => i.toString -> card
+
+    }.toList
 
 }
 
@@ -492,6 +505,20 @@ case object CatFight extends Recipe {
 }
 
 object Recipes {
-  val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole, BlackHole2P, CardHoarders, CatFight, DangerMode, ExplodingKittensClassicMode, EyeForAnEye, LightningKittens, Meowsochist, MindGames, NopeSauce, PowerPlay, PowerPlay2P, SharingIsCaring, SharingIsCaring2P, StickyFingers, ThePurrage)
+  val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole /*BlackHole2P*/, CardHoarders, CatFight, DangerMode, ExplodingKittensClassicMode, EyeForAnEye, LightningKittens, Meowsochist, MindGames, NopeSauce, PowerPlay, /*PowerPlay2P,*/ SharingIsCaring /*SharingIsCaring2P*/, StickyFingers, ThePurrage)
 
+
+
+  implicit val RecipeEncoder: Encoder[Recipe] = recipe => {
+    Json.obj(
+      "name"    -> recipe.name.asJson,
+      "description"    -> recipe.description.asJson,
+      "min-players" -> recipe.minPlayers.asJson,
+      "max-players" -> recipe.maxPlayers.asJson,
+      "defuses-on-start" -> recipe.defusesOnStart.asJson,
+      "duration" -> recipe.playTime.toMinutes.asJson,
+      "cards" -> recipe.getCardMap().asJson,
+    )
+
+  }
 }
