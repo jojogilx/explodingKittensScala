@@ -3,7 +3,11 @@ package websockethub
 import cats.effect.std.Queue
 import cats.effect.{Deferred, IO, Ref}
 import cats.implicits.{catsSyntaxOptionId, toFoldableOps, toTraverseOps}
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax._
 import fs2._
+import game.Lobby.Event
 import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
 
@@ -18,6 +22,7 @@ trait WebSocketHub {
   def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
+  def broadcast(event: Event): IO[Unit]
   def sendToHost(message: String): IO[Unit]
   def receiveFromHost(): IO[String]
   def endGame(): IO[Unit]
@@ -72,6 +77,15 @@ object WebSocketHub {
         }.void
       )
     }
+
+    override def broadcast(event: Event): IO[Unit] = {
+      stateRef.get.flatMap(map =>
+        map.values.toList.traverse { case (queue, _) =>
+          queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
+        }.void
+      )
+    }
+
 
     override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
       stateRef.get.flatMap(map =>

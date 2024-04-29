@@ -2,8 +2,9 @@ package rooms
 
 import cats.effect._
 import cats.effect.std.Queue
-import cats.implicits.catsSyntaxApplicativeId
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxOptionId}
 import game.Game
+import game.Lobby.Event
 import io.circe.syntax.EncoderOps
 import org.http4s.websocket.WebSocketFrame
 import players.Player._
@@ -31,13 +32,13 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       res <- if(playerID.isEmpty) Left("no player Id").pure[IO]
         else if (currentPlayers.length == 5) Left("This room is full").pure[IO]
         else if (started) Left("The game already started").pure[IO]
-        else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
+       // else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
         else {
           for {
             _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
             state <- stateRef.updateAndGet(roomState => roomState.copy(players = playerID :: roomState.players))
             _ <- game.joinGame(playerID)
-            _ <- webSocketHub.broadcast(state.players.asJson.noSpaces)
+            _ <- webSocketHub.broadcast(Event("players", state.players.asJson.noSpaces.some))
           } yield Right()
         }
     } yield res
@@ -47,7 +48,8 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
    * @param playerID id of the player that is leaving
    */
   def leave(playerID: PlayerID): IO[Unit] =
-    game.playerDisconnected(playerID) *> stateRef.update(roomState => roomState.copy(players = roomState.players.filterNot(_ == playerID))) *> webSocketHub.disconnectPlayer(playerID)
+    game.playerDisconnected(playerID) *> stateRef.update(roomState => roomState.copy(players = roomState.players.filterNot(_ == playerID))) *> webSocketHub.disconnectPlayer(playerID
+    ) *> webSocketHub.broadcast(Event("left", playerID.some))
 
   /**
    * If the room is full, starts the game

@@ -5,7 +5,9 @@ import card.Deck._
 import cats.effect.unsafe.implicits.global
 import cats.effect.{Deferred, IO, Ref}
 import cats.implicits._
+import game.Lobby.Event
 import gamestate._
+import io.circe.syntax.EncoderOps
 import players.Player
 import players.Player.{Hand, PlayerID}
 import utils.TerminalUtils._
@@ -39,7 +41,7 @@ case class Game(
         gameState.disconnections + (playerID -> Deferred)
         gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
       }
-    } yield ()) *> webSocketHub.broadcast(colorSystemMessage(s"$playerID joined the game"))
+    } yield ()) *> webSocketHub.broadcast(Event("joined", playerID.some))
 
 
   /** Callback that warns the game the player disconnected
@@ -57,7 +59,7 @@ case class Game(
       val newPlayers = gameState.players.filterNot(_.playerID == playerID)
 
       gameState.copy(players = newPlayers)
-    }) *> webSocketHub.broadcast(colorSystemMessage(s"$playerID left"))
+    }) *> webSocketHub.broadcast(Event("left", playerID.some))
 
   // -----manage player turns -------------------------------//
 

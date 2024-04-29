@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="starting to include FE">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="CORS solved">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.sbt" beforeDir="false" afterPath="$PROJECT_DIR$/build.sbt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Card.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Card.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
@@ -143,14 +139,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00030" summary="state initial">
-      <option name="closed" value="true" />
-      <created>1710345796203</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1710345796203</updated>
     </task>
     <task id="LOCAL-00031" summary="restructured game to use refs &#10;&#10;-&gt; game not fully working&#10;-&gt; websockethub not sending to player">
       <option name="closed" value="true" />
@@ -536,7 +524,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714118954711</updated>
     </task>
-    <option name="localTasksCounter" value="79" />
+    <task id="LOCAL-00079" summary="CORS solved">
+      <option name="closed" value="true" />
+      <created>1714401344151</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1714401344152</updated>
+    </task>
+    <option name="localTasksCounter" value="80" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -552,7 +548,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="finished doc" />
     <MESSAGE value="finished doc&#10;&gt; fixed bug causing players to bug when players incorrectly join the room" />
     <MESSAGE value="nope properly implemented" />
     <MESSAGE value="fixed targeted attack&#10;started to try to warn players of game end" />
@@ -577,6 +572,7 @@
     <MESSAGE value="added host to websocketHub and splitting multiple lines" />
     <MESSAGE value="restructured start. game is started after waiting for players" />
     <MESSAGE value="starting to include FE" />
-    <option name="LAST_COMMIT_MESSAGE" value="starting to include FE" />
+    <MESSAGE value="CORS solved" />
+    <option name="LAST_COMMIT_MESSAGE" value="CORS solved" />
   </component>
 </project>
