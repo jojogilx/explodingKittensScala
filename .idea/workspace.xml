@@ -4,10 +4,19 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="CORS solved">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="started to send events to FE">
+      <change afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Card.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Card.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/players/Player.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/players/Player.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/utils/TerminalUtils.scala" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -139,14 +148,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00031" summary="restructured game to use refs &#10;&#10;-&gt; game not fully working&#10;-&gt; websockethub not sending to player">
-      <option name="closed" value="true" />
-      <created>1710348054141</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1710348054141</updated>
     </task>
     <task id="LOCAL-00032" summary="Starting refactoring to command">
       <option name="closed" value="true" />
@@ -532,7 +533,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714401344152</updated>
     </task>
-    <option name="localTasksCounter" value="80" />
+    <task id="LOCAL-00080" summary="started to send events to FE">
+      <option name="closed" value="true" />
+      <created>1714402787998</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1714402787998</updated>
+    </task>
+    <option name="localTasksCounter" value="81" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -548,7 +557,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="finished doc&#10;&gt; fixed bug causing players to bug when players incorrectly join the room" />
     <MESSAGE value="nope properly implemented" />
     <MESSAGE value="fixed targeted attack&#10;started to try to warn players of game end" />
     <MESSAGE value="fixed nope card" />
@@ -573,6 +581,7 @@
     <MESSAGE value="restructured start. game is started after waiting for players" />
     <MESSAGE value="starting to include FE" />
     <MESSAGE value="CORS solved" />
-    <option name="LAST_COMMIT_MESSAGE" value="CORS solved" />
+    <MESSAGE value="started to send events to FE" />
+    <option name="LAST_COMMIT_MESSAGE" value="started to send events to FE" />
   </component>
 </project>

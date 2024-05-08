@@ -1,23 +1,19 @@
 package rooms
 
+import card.Recipe
 import cats.effect._
 import cats.effect.std.Queue
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxOptionId}
+import cats.implicits.catsSyntaxApplicativeId
 import game.Game
-import game.Lobby.Event
-import io.circe.syntax.EncoderOps
 import org.http4s.websocket.WebSocketFrame
 import players.Player._
-import utils.TerminalUtils.{GreenText, RedText, ResetText}
+import websockethub.Event._
 import websockethub.WebSocketHub
 
 
 
 
 case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: Ref[IO, RoomState]) {
-
-  //todo: restructure so it asks game which is the nPlayers max & min
-
 
   /**
    * Joins a player to this room
@@ -32,13 +28,30 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       res <- if(playerID.isEmpty) Left("no player Id").pure[IO]
         else if (currentPlayers.length == 5) Left("This room is full").pure[IO]
         else if (started) Left("The game already started").pure[IO]
-       // else if (currentPlayers.contains(playerID)) Left(s"ID $playerID already exists in this room").pure[IO]
         else {
           for {
-            _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
-            state <- stateRef.updateAndGet(roomState => roomState.copy(players = playerID :: roomState.players))
-            _ <- game.joinGame(playerID)
-            _ <- webSocketHub.broadcast(Event("players", state.players.asJson.noSpaces.some))
+            _ <- if(currentPlayers.contains(playerID)) {
+              for {
+                _<-  webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
+                _ <- game.reconnect(playerID)
+                state <- stateRef.get
+                _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(state.seatings.toList, state.recipe))
+
+              } yield ()
+            }
+            else {
+              for {
+                _ <- webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
+                state <- stateRef.updateAndGet(roomState => {
+                  val newPlayers =  roomState.players :+ playerID
+                  val newSeatings = roomState.seatings + (playerID -> roomState.seatings.size)
+                  roomState.copy(players = newPlayers, seatings = newSeatings)
+                })
+                _ <- game.joinGame(playerID)
+                _ <- webSocketHub.broadcast(Joined(playerID, state.seatings.toList))
+                _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(state.seatings.toList, state.recipe))
+              } yield ()
+            }
           } yield Right()
         }
     } yield res
@@ -48,8 +61,13 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
    * @param playerID id of the player that is leaving
    */
   def leave(playerID: PlayerID): IO[Unit] =
-    game.playerDisconnected(playerID) *> stateRef.update(roomState => roomState.copy(players = roomState.players.filterNot(_ == playerID))) *> webSocketHub.disconnectPlayer(playerID
-    ) *> webSocketHub.broadcast(Event("left", playerID.some))
+    for {
+      _ <- game.playerDisconnected(playerID)
+      state <- stateRef.updateAndGet(roomState => roomState.copy(players = roomState.players.filterNot(_ == playerID)))
+      _ <- webSocketHub.disconnectPlayer(playerID)
+      _ <- webSocketHub.broadcast(LeftGame(playerID, state.seatings.toList))
+    } yield ()
+
 
   /**
    * If the room is full, starts the game
@@ -63,24 +81,27 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
         else /*stateRef.update(roomState => roomState.copy(started = true)) *> */Right(game.initialize()).pure[IO]
     } yield res
 
+  def startGame2: IO[Unit] =
+    for {
+      state <- stateRef.get
+      res <-
+        if (0 == state.players.length) webSocketHub.broadcast(Information(s"Not enough players (${state.players.length}/0)"))
+        else if(state.started) IO.unit
+        else stateRef.update(roomState => roomState.copy(started = true)) *> game.initialize()
+    } yield res
+
   /**
    * Sends a message to the game
    * @param playerID id of the player that sent the message
    * @param message message to send
    */
   def sendToGame(playerID: PlayerID)(message: String): IO[Unit] = {
-    webSocketHub.sendToGame(playerID, message)
+      message match {
+        case "started" => startGame2.flatMap(_ => IO.unit)
+        case "left" => IO.println("player left")
+        case _ => IO.println(message) *> webSocketHub.sendToGame(playerID, message)
+      }
   }
-
-  /**
-   * Returns a string representation of this room, with name and players. If joinable text is green else red
-   * @return string representation
-   */
-  def getString: IO[String] = for {
-    room <- stateRef.get
-    color = if (room.started || room.players.length == 5) RedText else GreenText
-
-  } yield s"$color $name,  Players(${room.players.length}/5): ${room.players}$ResetText\n"
 
 
 }
@@ -93,13 +114,13 @@ object Room {
    * @param name name of the room
    * @return room created
    */
-  def create(name: String): IO[Room] = {
+  def create(name: String, recipe: Recipe): IO[Room] = {
     for {
       webSocketHub <- WebSocketHub.of
-      game         <- Game.create(5, webSocketHub)
-      state        <- Ref.of[IO, RoomState](RoomState(List.empty, started = false))
+      game         <- Game.create(5, webSocketHub, recipe)
+      state        <- Ref.of[IO, RoomState](RoomState(List.empty, Map.empty, started = false, recipe))
     } yield new Room(webSocketHub, game, name, state)
   }
 }
 
-case class RoomState(players: List[PlayerID], started: Boolean)
+case class RoomState(players: List[PlayerID], seatings: Map[PlayerID, Int], started: Boolean, recipe: Recipe)

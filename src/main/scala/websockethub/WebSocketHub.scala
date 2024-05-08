@@ -3,13 +3,11 @@ package websockethub
 import cats.effect.std.Queue
 import cats.effect.{Deferred, IO, Ref}
 import cats.implicits.{catsSyntaxOptionId, toFoldableOps, toTraverseOps}
-import io.circe._
-import io.circe.generic.semiauto._
 import io.circe.syntax._
 import fs2._
-import game.Lobby.Event
 import org.http4s.websocket.WebSocketFrame
 import players.Player.PlayerID
+import websockethub.Event._
 
 
 
@@ -17,14 +15,14 @@ trait WebSocketHub {
   type Message = String
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
   def sendToPlayer(player: PlayerID)(message: Message): IO[Unit]
+  def sendToPlayer2(player: PlayerID)(event: Event): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
   def sendToGame(playerID: PlayerID, message: Message): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
   def broadcast(event: Event): IO[Unit]
-  def sendToHost(message: String): IO[Unit]
-  def receiveFromHost(): IO[String]
+
   def endGame(): IO[Unit]
 
   def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]]
@@ -34,7 +32,6 @@ trait WebSocketHub {
 
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
-    hostRef          <- Ref.of[IO, String]("")
     stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame], IO[Unit])]](Map.empty)
     systemQueue      <- Queue.unbounded[IO, (PlayerID, String)]
     pendingInputsRef <- Ref.of[IO, Map[PlayerID, Deferred[IO, String]]](Map.empty)
@@ -48,18 +45,28 @@ object WebSocketHub {
     ): IO[Unit] = {
       println(s"$player connected")
 
-      hostRef.get
-        .map(_.isBlank)
-        .flatMap(b => if (b) hostRef.update(_ => player) *> IO.println(s"host is $player") else IO.unit) *> stateRef
-        .update(_ + (player -> (queue, onDisconnected)))
+      stateRef.update(_ + (player -> (queue, onDisconnected)))
     }
 
     override def sendToPlayer(playerID: PlayerID)(message: Message): IO[Unit] = {
+   //   IO.unit
+      sendToPlayer2(playerID)(Information(message))
+      /*stateRef.get.flatMap { messageMap =>
+        messageMap.get(playerID) match {
+          case Some((queue, _)) =>
+            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg)) *> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
+          case None =>
+            IO.println(s"Message queue not found for player $playerID")
+        }
+      }*/
+    }
+
+    override def sendToPlayer2(playerID: PlayerID)(event: Event): IO[Unit] = {
 
       stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
           case Some((queue, _)) =>
-            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg)) *> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
+            queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
           case None =>
             IO.println(s"Message queue not found for player $playerID")
         }
@@ -68,14 +75,15 @@ object WebSocketHub {
 
 
 
+
     override def broadcast(message: Message): IO[Unit] = {
-
-
-      stateRef.get.flatMap(map =>
+      broadcast(Information(message))
+//IO.unit
+      /*stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
           message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg))*> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
         }.void
-      )
+      )*/
     }
 
     override def broadcast(event: Event): IO[Unit] = {
@@ -101,7 +109,7 @@ object WebSocketHub {
     }
 
     override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
-      systemQueue.offer((playerID, message))
+      IO.println(message) *> systemQueue.offer((playerID, message)) *> IO.println("added")
     }
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
@@ -149,12 +157,7 @@ object WebSocketHub {
         }.void
       )
 
-    override def sendToHost(message: Message): IO[Unit] =
-      hostRef.get.flatMap(playerID => sendToPlayer(playerID)(message)
-      )
 
-    override def receiveFromHost(): IO[String] =
-      hostRef.get.flatMap(playerID => getGameInput(playerID))
   }
 
 }

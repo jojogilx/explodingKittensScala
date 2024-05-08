@@ -16,6 +16,7 @@ sealed trait Recipe {
   val defusesOnStart: Int
   val playTime: Duration
   val cardsOnStart: Int => Int
+  val available: Boolean
 
   override def toString: String = s"$name ($minPlayers-$maxPlayers players) - ${playTime.toMinutes.toInt.toString} min\n$description.\nCards: $getCardList"
 
@@ -29,15 +30,7 @@ sealed trait Recipe {
 
     }.mkString("[",", ","]")
 
-  def getCardMap(): List[(String, Card)] =
-    cardCount(1000).map {
-      case (card, i) if i > 900 => s"# players${
-        val nP = i - 1000
-        if (nP == 0) "" else if (nP > 0) s" + $nP" else s" $nP"
-      }" -> card
-      case (card, i) => i.toString -> card
-
-    }.toList
+  def getCardMap(): List[(Card, String)]
 
 }
 
@@ -68,7 +61,25 @@ case object NopeSauce extends Recipe {
   override val name: String = "Nope Sauce"
   override val description: String = "A game that's not going to go the way you planned."
 
-//  override def getCardList(): String = ""
+  override def getCardMap(): List[(Card, String)] =
+    List(
+    ExplodingKitten  -> "# Players - 1",
+    Defuse           -> "# Players",
+    Nope             -> "8",
+    Shuffle          -> "4",
+    Skip             -> "4",
+    AlterTheFuture3X -> "2",
+    SwapTopAndBottom -> "2",
+    Attack2X         -> "3",
+    TargetedAttack2X -> "2",
+    CatomicBomb      -> "1",
+    Bury             -> "3",
+    Tacocat          -> "4",
+    FeralCat         -> "6",
+    Reverse          -> "4"
+  )
+
+  override val available: Boolean = true
 }
 
 case object AttackOfTheAttacks extends Recipe {
@@ -91,7 +102,7 @@ case object AttackOfTheAttacks extends Recipe {
         Nope -> 4,
         CatomicBomb -> 1
       )
-
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -99,6 +110,23 @@ case object AttackOfTheAttacks extends Recipe {
   override val cardsOnStart: Int => Int = `# Players` => if(`# Players`==maxPlayers) 5 else 7
   override val name: String = "Attack of the Attacks"
   override val description: String = "How many turns in a row can you survive?"
+
+  override def getCardMap(): List[(Card, String)] =
+      List(
+        ExplodingKitten -> "# Players - 1",
+        Defuse -> "# Players + 1",
+        Attack2X -> "4",
+        TargetedAttack2X -> "2-4 players: 4; 5 players: 6",
+        Skip -> "4",
+        SuperSkip -> "2",
+        Reverse -> "3",
+        SeeTheFuture3X -> "3",
+        Tacocat -> "4",
+        RainbowRalphingCat -> "4",
+        ZombieCat -> "4",
+        Nope -> "4",
+        CatomicBomb -> "1"
+      )
 }
 
 
@@ -119,6 +147,23 @@ case object BlackHole extends Recipe {
         RainbowRalphingCat -> 3,
         FeralCat -> 4
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ImplodingKitten -> "# Players - 1",
+      Skip -> "5",
+      Nope -> "4",
+      Shuffle -> "5",
+      AlterTheFuture3X -> "3",
+      ShareTheFuture3X -> "4",
+      Reverse -> "4",
+      SwapTopAndBottom -> "3",
+      DrawFromTheBottom -> "3",
+      Tacocat -> "3",
+      RainbowRalphingCat -> "3",
+      FeralCat -> "4"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 0
@@ -146,6 +191,25 @@ case object DangerMode extends Recipe {
         ZombieCat -> 4,
         FeralCat -> 4
       )
+
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "6",
+      Defuse -> "# Players",
+      Attack2X -> "4",
+      TargetedAttack2X -> "4",
+      SuperSkip -> "1",
+      Shuffle -> "3",
+      Reverse -> "5",
+      DrawFromTheBottom -> "2",
+      StreakingKitten -> "1",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4",
+      FeralCat -> "4"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1
@@ -171,6 +235,22 @@ case object ExplodingKittensClassicMode extends Recipe {
         BeardCat -> 4,
         RainbowRalphingCat -> 4,
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players + 1",
+      Nope -> "3 Players: 3; 4-5 Players: 5",
+      Attack2X -> "3 Players: 2; 4-5 Players: 4",
+      Skip -> "3 Players: 3; 4-5 Players: 4",
+      Shuffle -> "3 Players: 2; 4-5 Players: 4",
+      SeeTheFuture3X -> "3 Players: 2; 4-5 Players: 5",
+      ZombieCat -> "3 Players: 0; 4-5 Players: 4",
+      Tacocat -> "4",
+      BeardCat -> "4",
+      RainbowRalphingCat -> "4"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -199,6 +279,25 @@ case object EyeForAnEye extends Recipe {
         Attack2X -> 4,
         Skip -> 4
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 2",
+      Defuse -> "# Players + 1",
+      ImplodingKitten -> "1",
+      SeeTheFuture3X -> "5",
+      AlterTheFuture3X -> "3",
+      AlterTheFuture3XNOW -> "2",
+      ShareTheFuture3X -> "4",
+      Mark -> "4",
+      Shuffle -> "2",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4",
+      Attack2X -> "4",
+      Skip -> "4"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -218,6 +317,16 @@ case object LightningKittens extends Recipe {
         Reverse -> 2,
         Nope -> 2
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players",
+      Skip -> "4",
+      Reverse -> "2",
+      Nope -> "2"
+    )
+
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1
@@ -244,6 +353,23 @@ case object Meowsochist extends Recipe {
         FeralCat -> 6,
         StreakingKitten -> 1
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players",
+      Defuse -> "# Players + 3",
+      PersonalAttack3X -> "4",
+      IllTakeThat -> "2",
+      Reverse -> "3",
+      AlterTheFuture3XNOW -> "2",
+      ShareTheFuture3X -> "3",
+      GarbageCollection -> "2",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      FeralCat -> "6",
+      StreakingKitten -> "1"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -273,6 +399,26 @@ case object PowerPlay extends Recipe {
         FeralCat -> 6,
         GarbageCollection -> 2
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players + 2",
+      ImplodingKitten -> "1",
+      StreakingKitten -> "1",
+      Nope -> "4",
+      SeeTheFuture3X -> "3",
+      ShareTheFuture3X -> "4",
+      Attack2X -> "4",
+      Bury -> "2",
+      DrawFromTheBottom -> "2",
+      Skip -> "4",
+      SuperSkip -> "2",
+      Tacocat -> "4",
+      FeralCat -> "6",
+      GarbageCollection -> "2"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -300,6 +446,22 @@ case object SharingIsCaring extends Recipe {
         FeralCat -> 4,
         BarkingKitten -> 2
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players + 1",
+      Mark -> "4",
+      ShareTheFuture3X -> "4",
+      Skip -> "4",
+      IllTakeThat -> "4",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4",
+      FeralCat -> "4",
+      BarkingKitten -> "2"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -327,6 +489,23 @@ case object StickyFingers extends Recipe {
         FeralCat -> 6,
 
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players",
+      Defuse -> "# Players + 1",
+      Attack2X -> "4",
+      Skip -> "4",
+      Mark -> "4",
+      IllTakeThat -> "4",
+      StreakingKitten -> "1",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4",
+      BeardCat -> "4",
+      FeralCat -> "6"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -334,7 +513,7 @@ case object StickyFingers extends Recipe {
   override val cardsOnStart: Int => Int = `# Players` => if(`# Players`==maxPlayers) 5 else 7
 }
 
-case object SharingIsCaring2P extends Recipe {
+/*case object SharingIsCaring2P extends Recipe {
   override val name: String = "Sharing Is Caring"
   override val description: String = "What's mine is yours... even the bad stuff, but for two players."
   override val cardCount: Int => Map[Card, Int] =
@@ -409,7 +588,7 @@ case object BlackHole2P extends Recipe {
   override val name: String = "Black Hole"
   override val description: String = "A game with only Imploding Kittens, but for 2 players"
 }
-
+*/
 case object ThePurrage extends Recipe {
   override val name: String = "The  Purrage"
   override val description: String = "A game of betrayal as created by Smosh Games!"
@@ -429,6 +608,23 @@ case object ThePurrage extends Recipe {
         Shuffle -> 5,
         Nope -> 8
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players",
+      ImplodingKitten -> "1",
+      CatomicBomb -> "1",
+      SuperSkip -> "2",
+      Skip -> "5",
+      Reverse -> "5",
+      Attack2X -> "6",
+      TargetedAttack2X -> "4",
+      PersonalAttack3X -> "4",
+      Shuffle -> "5",
+      Nope -> "8"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -454,6 +650,21 @@ case object MindGames extends Recipe {
         RainbowRalphingCat -> 4,
         ZombieCat -> 4
       )
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players",
+      Bury -> "4",
+      SeeTheFuture3X -> "6",
+      Skip -> "4",
+      Mark -> "4",
+      DrawFromTheBottom -> "2",
+      Reverse -> "4",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4"
+    )
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -478,6 +689,23 @@ case object CardHoarders extends Recipe {
         RainbowRalphingCat -> 4,
         ZombieCat -> 4,
         Nope -> 4)
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "2-3 Players: 1; 4 Players: 2",
+      Defuse -> "# Players",
+      ImplodingKitten -> "1",
+      SeeTheFuture3X -> "4",
+      ShareTheFuture3X -> "4",
+      SwapTopAndBottom -> "3",
+      DrawFromTheBottom -> "2",
+      Shuffle -> "3",
+      Tacocat -> "4",
+      RainbowRalphingCat -> "4",
+      ZombieCat -> "4",
+      Nope -> "4"
+    )
+
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1
@@ -497,6 +725,17 @@ case object CatFight extends Recipe {
         Nope -> 3,
         AlterTheFuture3XNOW -> 2,
         Reverse -> 3)
+  override def getCardMap(): List[(Card, String)] =
+    List(
+      ExplodingKitten -> "# Players - 1",
+      Defuse -> "# Players",
+      Attack2X -> "4",
+      TargetedAttack2X -> "2",
+      Nope -> "3",
+      AlterTheFuture3XNOW -> "2",
+      Reverse -> "3"
+    )
+  override val available: Boolean = false
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1
@@ -505,20 +744,20 @@ case object CatFight extends Recipe {
 }
 
 object Recipes {
-  val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole /*BlackHole2P*/, CardHoarders, CatFight, DangerMode, ExplodingKittensClassicMode, EyeForAnEye, LightningKittens, Meowsochist, MindGames, NopeSauce, PowerPlay, /*PowerPlay2P,*/ SharingIsCaring /*SharingIsCaring2P*/, StickyFingers, ThePurrage)
+  val recipesList: List[Recipe] = List(AttackOfTheAttacks, BlackHole, CardHoarders, CatFight, DangerMode, ExplodingKittensClassicMode, EyeForAnEye, LightningKittens, Meowsochist, MindGames, NopeSauce, PowerPlay, SharingIsCaring, StickyFingers, ThePurrage)
 
-
-
-  implicit val RecipeEncoder: Encoder[Recipe] = recipe => {
+  implicit val RecipeEncoder: Encoder[Recipe] = recipe =>
     Json.obj(
-      "name"    -> recipe.name.asJson,
-      "description"    -> recipe.description.asJson,
-      "min-players" -> recipe.minPlayers.asJson,
-      "max-players" -> recipe.maxPlayers.asJson,
-      "defuses-on-start" -> recipe.defusesOnStart.asJson,
-      "duration" -> recipe.playTime.toMinutes.asJson,
-      "cards" -> recipe.getCardMap().asJson,
+      "name"             -> recipe.name.asJson,
+      "description"      -> recipe.description.asJson,
+      "min_players"      -> recipe.minPlayers.asJson,
+      "max_players"      -> recipe.maxPlayers.asJson,
+      "defuses_on_start" -> recipe.defusesOnStart.asJson,
+      "duration"         -> recipe.playTime.toMinutes.asJson,
+      "cards"            -> recipe.getCardMap().asJson,
+      "available" -> recipe.available.asJson
     )
 
-  }
+  def getRecipe(n: String): Option[Recipe] = recipesList.find(_.name == n)
+
 }

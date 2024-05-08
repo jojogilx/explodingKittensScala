@@ -1,15 +1,15 @@
 package game
 
 import card.Recipes
-import card.Recipes.RecipeEncoder
+import card.Recipes._
 import cats.effect._
 import cats.effect.std.Queue
 import cats.effect.unsafe.implicits.global
 import cats.implicits.{toFunctorOps, toTraverseOps}
 import com.comcast.ip4s.IpLiteralSyntax
+import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax._
-import io.circe._
 import fs2._
 import org.http4s._
 import org.http4s.circe.toMessageSyntax
@@ -19,6 +19,7 @@ import org.http4s.server.middleware.CORS
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import rooms.Room
+import websockethub.Event._
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -34,7 +35,8 @@ object Lobby extends IOApp {
             Json.obj(
               "name"    -> r.name.asJson,
               "players" -> state.players.asJson,
-              "started" -> state.started.asJson
+              "started" -> state.started.asJson,
+              "recipe" -> state.recipe.asJson
             )
           )
           .unsafeRunSync()
@@ -42,13 +44,10 @@ object Lobby extends IOApp {
     }.asJson
 
 
-  case class RoomCreationForm(roomName: String, playerName: String)
+  case class RoomCreationForm(roomName: String, playerName: String, recipeName: String)
 
   implicit val RoomCreateDecoder = deriveDecoder[RoomCreationForm]
 
-  case class Event(event: String, value: Option[String])
-  implicit val EventDecoder = deriveDecoder[Event]
-  implicit val EventEncoder = deriveEncoder[Event]
 
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
@@ -59,20 +58,6 @@ object Lobby extends IOApp {
 
         val imageService = HttpRoutes
           .of[IO] {
-
-            // curl GET http://127.0.0.1:8080/lobby
-            case GET -> Root / "lobby" =>
-              for {
-                map <- roomsRef.get
-                _   <- IO.println(map)
-                strings <- map.values.toList.zipWithIndex.foldLeft(IO.pure("")) { case (accIO, (room, i)) =>
-                  for {
-                    acc        <- accIO
-                    roomString <- room.getString
-                  } yield acc + s"${i + 1}.  $roomString\n"
-                }
-                response <- Ok(strings)
-              } yield response
 
             // curl GET http://127.0.0.1:8080/rooms
             case GET -> Root / "rooms" =>
@@ -104,15 +89,17 @@ object Lobby extends IOApp {
 
             // maybe initialize game on create room
             case req @ POST -> Root / "create" =>
-              req.decodeJson[RoomCreationForm].flatTap(IO.println(_)).flatMap { form =>
+               req.decodeJson[RoomCreationForm].flatMap { form =>
                 val roomName = form.roomName
+                val recipeOption = getRecipe(form.recipeName)
+
                 for {
                   rooms <- roomsRef.get.map(_.keys.toList)
                   res <-
                     if (rooms.contains(roomName.trim)) IO.println("exists") *> BadRequest("Room already exists")
                     else {
                       for {
-                        room <- Room.create(roomName.trim)
+                        room <- recipeOption.fold(IO.println(s"no recipe? $recipeOption") *> IO.raiseError[Room](new Exception("Recipe not found")))(recipe => Room.create(roomName.trim, recipe))
                         map  <- roomsRef.updateAndGet(rooms => rooms + (roomName.trim -> room))
                         _    <- roomsQueueRef.get.flatMap(m => m.values.toList.traverse(_.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))))
                         res  <- Ok()
@@ -121,7 +108,7 @@ object Lobby extends IOApp {
                 } yield res
               }
 
-            // delete room!!
+            // delete room
 
             // websocat ws://127.0.0.1:8080/join/room1/player1
             case GET -> Root / "join" / roomName / playerID =>
@@ -169,7 +156,7 @@ object Lobby extends IOApp {
                         .fold(BadRequest("error"))(room =>
                           room.startGame.flatMap {
                             case Left(value)  => BadRequest(value)
-                            case Right(value) => Accepted(value)
+                            case Right(value) => room.webSocketHub.broadcast(Started()) *> Accepted(value)
                           }
                         )
                     })
@@ -178,7 +165,7 @@ object Lobby extends IOApp {
 
             case GET -> Root / "recipes" =>
               val recipes = Recipes.recipesList.asJson.noSpaces
-              Ok(recipes)
+              Ok().map(_.withEntity(recipes))
 
           }
           .orNotFound

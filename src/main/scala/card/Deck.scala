@@ -2,7 +2,6 @@ package card
 
 import scala.language.reflectiveCalls
 import scala.util.Random
-import cats.implicits.catsSyntaxOptionId
 
 object Deck {
 
@@ -19,12 +18,9 @@ object Deck {
   }*/
 
 
-  def initFromRecipe(recipe: Recipe, nPlayers: Int): Option[Deck] = nPlayers match {
-    case x if recipe.minPlayers to recipe.maxPlayers contains x =>
-      val cards = recipe.cardCount(x).flatMap { case (card, count) => List.fill(count)(card) }.toList
-      Deck(cards).some
-    case _ => None
-  }
+  def initFromRecipe(recipe: Recipe, nPlayers: Int): Deck =
+        Deck(recipe.cardCount(nPlayers).flatMap { case (card, count) => List.fill(count)(card) }.toList)
+
 
   /** Creates a new deck from 2 decks, adding the cards and shuffling them
     * @param drawPile

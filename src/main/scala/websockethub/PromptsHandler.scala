@@ -1,12 +1,11 @@
 package websockethub
 
-import card.{CatCard, Defuse, ExplodingKitten, Nope, Recipe}
-import card.Recipes.recipesList
+import card.{CatCard, Defuse, ExplodingKitten, Nope}
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import players.Player
 import players.Player.{Hand, PlayerID}
-import utils.TerminalUtils.{colorErrorMessage, colorPlayerMessage, getStringWithIndex}
+import websockethub.Event.HandEvent
 
 
 
@@ -54,95 +53,66 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 
     } yield answer).flatTap(_ => IO.println("here"))
 
-  def recipePrompt(): IO[Recipe] =
-    chooseWithIndex(
-      webSocketHub.sendToHost,
-      webSocketHub.receiveFromHost,
-      "Chose recipe",
-      recipesList,
-      (recipes: List[Recipe]) => recipes.map(_.toString),
-      "\n"
-    )
 
-  def targetAttackPrompter(playerID: PlayerID, playersCanTarget: List[Player]): IO[Player] =
-    chooseWithIndex(
-      webSocketHub.sendToPlayer(playerID)(_),
-      () => webSocketHub.getGameInput(playerID),
-      "\nWho do you want to target?\n",
-      playersCanTarget,
-      (players: List[Player]) => players.map(_.playerID),
-      "\n"
-    )
 
-  def chooseWithIndex[T](
-      sender: String => IO[Unit],
-      receiver: () => IO[String],
-      prompt: String,
-      list: List[T],
-      display: List[T] => List[String],
-      separator: String
-  ): IO[T] =
-    for {
-      _   <- sender(prompt)
-      _   <- webSocketHub.sendToHost(getStringWithIndex(display(list), separator))
-      input <- receiver().map(_.toIntOption)
+//  def targetAttackPrompter(playerID: PlayerID, playersCanTarget: List[Player]): IO[Player] =
+//    chooseWithIndex(
+//      webSocketHub.sendToPlayer(playerID)(_),
+//      () => webSocketHub.getGameInput(playerID),
+//      "\nWho do you want to target?\n",
+//      playersCanTarget,
+//      (players: List[Player]) => players.map(_.playerID),
+//      "\n"
+//    )
 
-      thing <- input match {
-        case Some(index) =>
-          list.lift(index - 1) match {
-            case Some(value) => value.pure[IO]
-            case None =>
-              webSocketHub.sendToHost(colorErrorMessage("Invalid index")) *> chooseWithIndex[T](
-                sender,
-                receiver,
-                prompt,
-                list,
-                display,
-                separator
-              )
-          }
-        case None =>
-          webSocketHub.sendToHost(colorErrorMessage(s"Invalid input, choose between 1 and ${list.length}")) *> chooseWithIndex[T](
-            sender,
-            receiver,
-            prompt,
-            list,
-            display,
-            separator
-          )
-      }
-    } yield thing
+//  def chooseWithIndex[T](
+//      sender: String => IO[Unit],
+//      receiver: () => IO[String],
+//      prompt: String,
+//      list: List[T],
+//      display: List[T] => List[String],
+//      separator: String
+//  ): IO[T] =
+//    for {
+//      _   <- sender(prompt)
+//      _   <- webSocketHub.sendToHost(display(list).toString())
+////      _   <- webSocketHub.sendToHost(getStringWithIndex(display(list), separator))
+//      input <- receiver().map(_.toIntOption)
+//
+//      thing <- input match {
+//        case Some(index) =>
+//          list.lift(index - 1) match {
+//            case Some(value) => value.pure[IO]
+//            case None =>
+//              webSocketHub.sendToHost("Invalid index") *> chooseWithIndex[T](
+//                sender,
+//                receiver,
+//                prompt,
+//                list,
+//                display,
+//                separator
+//              )
+//          }
+//        case None =>
+//          webSocketHub.sendToHost(s"Invalid input, choose between 1 and ${list.length}") *> chooseWithIndex[T](
+//            sender,
+//            receiver,
+//            prompt,
+//            list,
+//            display,
+//            separator
+//          )
+//      }
+//    } yield thing
 
 
   def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] =
     for {
-      _ <- webSocketHub.sendToPlayer(player.playerID)( s"Your hand is: ${getStringWithIndex(playerHand,"\n")}")
-      _ <- webSocketHub.sendToPlayer(player.playerID)(colorPlayerMessage(player, s", do you wish to play a card?"))
-      _ <- webSocketHub.sendToPlayer(
-        player.playerID)(
-        "Enter the index of the card you want to play (n to Pass or index -h to get card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
-      )
-
+      _ <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand))// switch to a PlayCardRequest
       answer <- webSocketHub.getGameInput(player.playerID)
+      _<- IO.println(s"answerr is ${answer}")
       result <- answer match {
         case "n" => None.pure[IO]
-        case s"$index -h" =>
-          index.toIntOption.map(_ - 1) match {
-            case Some(i) if playerHand.indices contains i =>
-              webSocketHub.sendToPlayer(
-                player.playerID)(
-                colorErrorMessage(playerHand(i).toStringDescription)
-              ) *> playCardsPrompt(
-                player, playerHand
-              )
-            case None =>
-              webSocketHub.sendToPlayer(
-                player.playerID)(
-                colorErrorMessage("Invalid index (e.g.: 1 -h)")
-              ) *> playCardsPrompt(
-                player, playerHand
-              )
-          }
         case s"${c1},${c2}" =>
           {
             (c1.toIntOption.map(_ - 1), c2.toIntOption.map(_ - 1)) match {
@@ -184,19 +154,19 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
                 case ExplodingKitten | Defuse | Nope =>
                   webSocketHub.sendToPlayer(
                     player.playerID)(
-                    colorErrorMessage("You can't play this card right now")
+                   "You can't play this card right now"
                   ) *> playCardsPrompt(player,playerHand)
                 case _ => Some(List(i)).pure[IO]
               }
 
             case _ =>
-              webSocketHub.sendToPlayer(player.playerID)( colorErrorMessage("Invalid index")) *> playCardsPrompt(
+              webSocketHub.sendToPlayer(player.playerID)( "Invalid index") *> playCardsPrompt(
                 player,playerHand
               )
           }
 
         case _ =>
-          webSocketHub.sendToPlayer(player.playerID)(colorErrorMessage("Invalid input")) *> playCardsPrompt(
+          webSocketHub.sendToPlayer(player.playerID)("Invalid input") *> playCardsPrompt(
             player,playerHand
           )
       }

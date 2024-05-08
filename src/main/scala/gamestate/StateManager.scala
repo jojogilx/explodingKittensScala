@@ -6,7 +6,6 @@ import cats.effect.std.Queue
 import cats.implicits._
 import gamestate.Command._
 import players.Player
-import utils.TerminalUtils._
 import websockethub.WebSocketHub
 
 import scala.util.Random
@@ -34,7 +33,7 @@ object StateManager {
             def switchPiles(): State = {
               val draw = Deck.initShuffledFromDiscardPile2(state.drawDeck, state.discardDeck)
 
-              webSocketHub.broadcast(colorSystemMessage(s"switching piles"))
+//              webSocketHub.broadcast(colorSystemMessage(s"switching piles"))
               state.copy(drawDeck = draw, discardDeck = Deck(List.empty))
             }
 
@@ -42,18 +41,18 @@ object StateManager {
               case SetRandomPlayerTurn() =>
                 val index = Random.nextInt(state.players.length)
                 (state.copy(currentPlayerIndex = index),
-                  webSocketHub.broadcast(colorPlayerMessage(state.players(index), "'s starting")))
+                  webSocketHub.broadcast(s"${state.players(index)} 's starting"))
 
 
               case AddPlayer(player) =>
-                val newPlayer      = Player(player, PlayerColors(state.players.length))
+                val newPlayer      = Player(player)
                 val updatedPlayers = newPlayer :: state.players
 
-                (state.copy(players = updatedPlayers), webSocketHub.broadcast(colorSystemMessage(s"$player joined the game")))
+                (state.copy(players = updatedPlayers), webSocketHub.broadcast(s"$player joined the game"))
 
               case RemovePlayer(player) =>
                 val updatedPlayers = state.players.filterNot(_.playerID == player)
-                (state.copy(players = updatedPlayers),webSocketHub.broadcast(colorSystemMessage(s"$player left the game")))
+                (state.copy(players = updatedPlayers),webSocketHub.broadcast(s"$player left the game"))
 
               case KillCurrentPlayer() =>
                 val currentIndex  = state.currentPlayerIndex
@@ -61,7 +60,7 @@ object StateManager {
                 val newPlayers    = left ::: right.drop(1)
 
 
-                (state.copy(players = newPlayers),webSocketHub.broadcast(diedMessage(right.head)) )// > avoid head
+                (state.copy(players = newPlayers),webSocketHub.broadcast(s"${right.head} died") )// > avoid head
 
               case PlayCard(playerID, index) =>
                 val card          = state.playersHands(playerID)(index)
