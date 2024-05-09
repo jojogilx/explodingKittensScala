@@ -11,20 +11,6 @@ import websockethub.Event.HandEvent
 
 case class PromptsHandler(webSocketHub: WebSocketHub) {
 
-  /** @param playerID
-    * @return
-    *   Left if spectating, Right if leaving
-    */
-  def playOrSpectate(playerID: PlayerID): IO[Either[Unit, Unit]] =
-    chooseBetween2Options(playerID, "play", "p", "spectate", "s")
-
-  /** @param playerID
-    * @return
-    *   Left if spectating, Right if leaving
-    */
-  def spectateOrLeave(playerID: PlayerID): IO[Either[Unit, Unit]] =
-    chooseBetween2Options(playerID, "spectate", "s", "quit", "q")
-
   def chooseBetween2Options(
       playerID: PlayerID,
       opt1: String,
@@ -48,7 +34,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
         case _ =>
           webSocketHub.sendToPlayer(playerID)(
             "Invalid answer. Please type s to spectate or q to quit"
-          ) *> playOrSpectate(playerID)
+          ) *> chooseBetween2Options(playerID,opt1, opt1Accept, opt2, opt2Accept)
       }
 
     } yield answer).flatTap(_ => IO.println("here"))
@@ -110,12 +96,11 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
     for {
       _ <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand))// switch to a PlayCardRequest
       answer <- webSocketHub.getGameInput(player.playerID)
-      _<- IO.println(s"answerr is ${answer}")
       result <- answer match {
         case "n" => None.pure[IO]
         case s"${c1},${c2}" =>
           {
-            (c1.toIntOption.map(_ - 1), c2.toIntOption.map(_ - 1)) match {
+            (c1.toIntOption, c2.toIntOption) match {
               case (Some(i),Some(j)) if List(i,j).forall(i => {
                 playerHand.indices.contains(i) && (playerHand(i) match {
                   case _: CatCard => true
@@ -132,7 +117,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
           } *> None.pure[IO]
         case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
           {
-            List(c1.toInt - 1, c2.toInt - 1, c3.toInt - 1) match {
+            List(c1.toInt, c2.toInt, c3.toInt) match {
               case list if list.forall(i => {
                 playerHand.indices.contains(i) && (playerHand(i) match {
                   case _: CatCard => true
@@ -148,7 +133,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
             }
           } *> None.pure[IO]
         case x if x.toIntOption.isDefined =>
-          x.toInt - 1 match {
+          x.toInt match {
             case i if playerHand.indices contains i =>
               playerHand(i) match {
                 case ExplodingKitten | Defuse | Nope =>

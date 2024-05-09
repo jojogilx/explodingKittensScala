@@ -166,32 +166,17 @@ case class Game(
     */
   def initialize(): IO[Unit] = {
     for {
+      _ <- webSocketHub.broadcast(Started())
       _        <- webSocketHub.broadcast(Information("Initializing"))
       nPlayers <- gameStateRef.get.map(_.players.length)
       draw_deck = initFromRecipe(recipe, nPlayers)
       _ <- gameStateRef.update(state => state.copy(drawDeck = draw_deck))
-      _        <- handCards(nPlayers, recipe)
+      _        <- handCards(nPlayers)
       player   <- setRandomPlayerNext()
       _        <- gameLoop(player)
     } yield ()
   }
 
-  /*  def awaitStart(minPlayers: Int, maxPlayers: Int): IO[Unit] = {
-    val awaitPlayers =fs2.Stream.awakeEvery[IO](5.seconds).evalMap(_ => gameStateRef.get.map(_.players.length).flatMap(nP => webSocketHub.broadcast(s"Waiting for players ..."
-    ) *> {if(nP>=minPlayers && nP <= maxPlayers) webSocketHub.sendToHost("Press S to start...") else IO.unit}))
-
-    val receiveFromHostStream = fs2.Stream.repeatEval(webSocketHub.receiveFromHost())
-      .takeWhile(s  => gameStateRef.get.map(_.players.length).flatMap{
-        case nP if ((minPlayers to maxPlayers) contains nP) && s == "s" => false.pure[IO]
-        case _ => true.pure[IO]
-
-      }.unsafeRunSync())
-
-    IO.race(
-      awaitPlayers.compile.drain,
-      receiveFromHostStream.compile.drain
-    ).void
-  }*/
 
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
     */
@@ -327,6 +312,7 @@ case class Game(
         hand <- gameStateRef.get.map { gameState =>
           gameState.playersHands.find { case (`playerID`, _) => true }.map(_._2)
         }
+
         playOrPass <- hand.fold(none[List[Int]].pure[IO])(hand =>
           if (canPlayAnything(hand))
             prompter.playCardsPrompt(currentPlayer, hand)
@@ -337,7 +323,13 @@ case class Game(
         playerSkipped <- playOrPass.fold(false.pure[IO])(list =>
           list.foldLeft(false.pure[IO]) { (acc, i) =>
             acc.combineK(handleCardPlayed(currentPlayer, playCard(i)))
-          }
+          }.flatTap(_ =>
+            for {
+              hand <- gameStateRef.get.map { gameState =>
+                gameState.playersHands.find { case (`playerID`, _) => true }.map(_._2)
+              }
+              _ <- webSocketHub.sendToPlayer2(playerID)(HandEvent(hand.get))
+          } yield () )
         ) // If card played, does player skip draw?
         //
 
@@ -595,13 +587,13 @@ case class Game(
   /** Removes all bombs and defuses from the deck and deals the players 7 cards + a defuse then adds the bombs back and
     * shuffles the deck
     */
-  private def handCards(nPlayers: Int, recipe: Recipe): IO[Unit] = {
+  private def handCards(nPlayers: Int): IO[Unit] = {
     webSocketHub.broadcast(Information("Handing cards...")) *>
       gameStateRef.modify { gameState =>
         val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, recipe.defusesOnStart * nPlayers)
         val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
           case ((cards, map), p) =>
-            val (hand, newDrawDeck) = cards.splitAt(7)
+            val (hand, newDrawDeck) = cards.splitAt(recipe.cardsOnStart(nPlayers))
             val newHand             = hand :+ Defuse
 
             (newDrawDeck, map + (p.playerID -> newHand))

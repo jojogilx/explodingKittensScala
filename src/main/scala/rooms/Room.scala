@@ -99,7 +99,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       message match {
         case "started" => startGame2.flatMap(_ => IO.unit)
         case "left" => IO.println("player left")
-        case _ => IO.println(message) *> webSocketHub.sendToGame(playerID, message)
+        case _ => IO.println(s"got $message") *> webSocketHub.sendToGame(playerID, message)
       }
   }
 

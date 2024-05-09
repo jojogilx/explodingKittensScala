@@ -109,7 +109,7 @@ object WebSocketHub {
     }
 
     override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
-      IO.println(message) *> systemQueue.offer((playerID, message)) *> IO.println("added")
+      systemQueue.offer((playerID, message)) *> IO.println("added")
     }
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
