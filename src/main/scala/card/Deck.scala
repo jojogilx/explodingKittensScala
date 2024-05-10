@@ -1,38 +1,19 @@
 package card
 
-import scala.language.reflectiveCalls
 import scala.util.Random
 
 object Deck {
 
 
-  /** Creates a deck from the nope sauce recipe's cards, shuffled
+  /** Creates a deck from the recipe's cards
     * @param nPlayers
     *   \- # players playing the game
     * @return
-    *   created shuffled deck
+    *   created deck
     */
-/*  def initShuffledNopeSauce(nPlayers: Int): Deck = {
-    val cards = nopeSauceMap(nPlayers).flatMap { case (card, count) => List.fill(count)(card) }.toList
-    Deck(cards).shuffled
-  }*/
-
-
   def initFromRecipe(recipe: Recipe, nPlayers: Int): Deck =
         Deck(recipe.cardCount(nPlayers).flatMap { case (card, count) => List.fill(count)(card) }.toList)
 
-
-  /** Creates a new deck from 2 decks, adding the cards and shuffling them
-    * @param drawPile
-    *   \- original deck 1
-    * @param discardPile
-    *   \- original deck 2
-    * @return
-    *   created deck with all cards, shuffled
-    */
-  def initShuffledFromDiscardPile2(drawPile: Deck, discardPile: Deck): Deck = {
-    Deck(drawPile.cards ++ discardPile.cards).shuffled
-  }
 
   /** Removes the defuse cards and bombs from the deck
     * @param deck
@@ -41,8 +22,6 @@ object Deck {
     *   tuple of card list with no bombs and defuses and the list of bombs
     */
   def removeDefuseAndBombs(deck: Deck, numberOfDefuses: Int): (List[Card], List[Card]) = {
-    print(numberOfDefuses)
-    print("DEFUSE")
     val (deck2, bombs) = deck.cards.filterNot(_==Defuse).partition({
       case ExplodingKitten => false
       case _ => true
@@ -51,7 +30,6 @@ object Deck {
     val defusesInDeck = deck.cards.count(_ == Defuse) - numberOfDefuses
 
     (Deck(deck2 ++ (1 to defusesInDeck).map(_ => Defuse)).shuffled.cards, bombs)
-
   }
 
 }
@@ -70,7 +48,10 @@ case class Deck(private val cards: List[Card]) {
     */
   def length: Int = cards.length
 
-
+  /**
+   * gets the top card
+   * @return option of the top card
+   */
   def topCard: Option[Card] = cards.headOption
 
   /** Returns the first N cards from the deck
@@ -83,11 +64,22 @@ case class Deck(private val cards: List[Card]) {
     val (before, _) = cards.splitAt(n)
     before
   }
+
+  /** removes the top 3 cards
+   * @return
+   *   remaining cards
+   */
   private def removeFirst3(): List[Card] = {
     val (_, after) = cards.splitAt(3)
    after
   }
 
+
+  /** Alters the order of the top 3 cards
+   * @param order order of the cards
+   * @return
+   *   new altered deck
+   */
   def alterTheFuture3X(order: String): Deck = {
     val cardsNew  = order.map(_.toString.toInt - 1).map(getFirstN(3)).toList
     val remainingDeck = removeFirst3()

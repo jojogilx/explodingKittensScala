@@ -6,7 +6,7 @@ import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax.EncoderOps
 import players.Player
-import players.Player.{Hand, PlayerID}
+import players.Player._
 sealed trait Event
 object Event {
 

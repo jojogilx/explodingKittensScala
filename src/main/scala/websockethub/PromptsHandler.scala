@@ -7,8 +7,6 @@ import players.Player
 import players.Player.{Hand, PlayerID}
 import websockethub.Event.HandEvent
 
-
-
 case class PromptsHandler(webSocketHub: WebSocketHub) {
 
   def chooseBetween2Options(
@@ -34,12 +32,10 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
         case _ =>
           webSocketHub.sendToPlayer(playerID)(
             "Invalid answer. Please type s to spectate or q to quit"
-          ) *> chooseBetween2Options(playerID,opt1, opt1Accept, opt2, opt2Accept)
+          ) *> chooseBetween2Options(playerID, opt1, opt1Accept, opt2, opt2Accept)
       }
 
     } yield answer).flatTap(_ => IO.println("here"))
-
-
 
 //  def targetAttackPrompter(playerID: PlayerID, playersCanTarget: List[Player]): IO[Player] =
 //    chooseWithIndex(
@@ -91,48 +87,45 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 //      }
 //    } yield thing
 
-
-  def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] =
+  def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] = {
     for {
-      _ <- IO.println("oi")
-      _ <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand))// switch to a PlayCardRequest
-      _ <- IO.println("oi2")
+      _      <- IO.println("oi")
+      _      <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand)) // switch to a PlayCardRequest
+      _      <- IO.println("oi2")
       answer <- webSocketHub.getGameInput(player.playerID)
-      _ <- IO.println(s"answer is $answer")
+      _      <- IO.println(s"answer is $answer")
       result <- answer match {
         case "n" => None.pure[IO]
         case s"${c1},${c2}" =>
           {
             (c1.toIntOption, c2.toIntOption) match {
-              case (Some(i),Some(j)) if List(i,j).forall(i => {
-                playerHand.indices.contains(i) && (playerHand(i) match {
-                  case _: CatCard => true
-                  case _          => false
-                })
-              }) =>
-                Some(List(i,j)).pure[IO]
+              case (Some(i), Some(j)) if List(i, j).forall(i => {
+                    playerHand.indices.contains(i) && (playerHand(i) match {
+                      case _: CatCard => true
+                      case _          => false
+                    })
+                  }) =>
+                Some(List(i, j)).pure[IO]
               case _ =>
-                webSocketHub.sendToPlayer(
-                  player.playerID)(
+                webSocketHub.sendToPlayer(player.playerID)(
                   "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
-                ) *> playCardsPrompt(player,playerHand)
+                ) *> playCardsPrompt(player, playerHand)
             }
           } *> None.pure[IO]
         case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
           {
             List(c1.toInt, c2.toInt, c3.toInt) match {
               case list if list.forall(i => {
-                playerHand.indices.contains(i) && (playerHand(i) match {
-                  case _: CatCard => true
-                  case _          => false
-                })
-              }) =>
+                    playerHand.indices.contains(i) && (playerHand(i) match {
+                      case _: CatCard => true
+                      case _          => false
+                    })
+                  }) =>
                 Some(list).pure[IO]
               case _ =>
-                webSocketHub.sendToPlayer(
-                  player.playerID)(
+                webSocketHub.sendToPlayer(player.playerID)(
                   "Invalid input, play 3 indices of cat cards (e.g.: 1,2,3)"
-                ) *> playCardsPrompt(player,playerHand)
+                ) *> playCardsPrompt(player, playerHand)
             }
           } *> None.pure[IO]
         case x if x.toIntOption.isDefined =>
@@ -140,26 +133,32 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
             case i if playerHand.indices contains i =>
               playerHand(i) match {
                 case ExplodingKitten | Defuse | Nope =>
-                  webSocketHub.sendToPlayer(
-                    player.playerID)(
-                   "You can't play this card right now"
-                  ) *> playCardsPrompt(player,playerHand)
+                  webSocketHub.sendToPlayer(player.playerID)(
+                    "You can't play this card right now"
+                  ) *> playCardsPrompt(player, playerHand)
                 case _ => Some(List(i)).pure[IO]
               }
 
             case _ =>
-              webSocketHub.sendToPlayer(player.playerID)( "Invalid index") *> playCardsPrompt(
-                player,playerHand
+              webSocketHub.sendToPlayer(player.playerID)("Invalid index") *> playCardsPrompt(
+                player,
+                playerHand
               )
           }
 
         case _ =>
           webSocketHub.sendToPlayer(player.playerID)("Invalid input") *> playCardsPrompt(
-            player,playerHand
+            player,
+            playerHand
           )
       }
       _ <- IO.println("end")
     } yield result
+  }
 
+  def garbageCollectionPrompt(): IO[Unit] =
+    for {
+      _ <- IO.println("TODO Garb collect")
+    } yield ()
 
 }

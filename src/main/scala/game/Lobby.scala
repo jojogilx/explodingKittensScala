@@ -20,7 +20,6 @@ import org.http4s.server.middleware.CORS
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import players.Player
-import websockethub.Event._
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -42,7 +41,7 @@ object Lobby extends IOApp {
 
   case class RoomCreationForm(roomName: String, playerName: String, recipeName: String)
 
-  implicit val RoomCreateDecoder = deriveDecoder[RoomCreationForm]
+  implicit val RoomCreateDecoder: Decoder[RoomCreationForm] = deriveDecoder[RoomCreationForm]
 
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
@@ -84,7 +83,7 @@ object Lobby extends IOApp {
                     games
                       .get(roomName.trim)
                       .fold(BadRequest(Json.obj("error" -> "Game doesn't exist".asJson)))(game =>
-                        game.join(playerID.trim, q).flatMap {
+                        game.webSocketHub.connect(playerID,q, game.playerDisconnected(playerID)) *> game.join(playerID.trim).flatMap {
                           case Left(value) => BadRequest("error" -> value.asJson)
                           case Right(_) =>
                             wsb
@@ -95,7 +94,7 @@ object Lobby extends IOApp {
                                 }).map({ case WebSocketFrame.Text(text, _) =>
                                   text
                                 }).evalMap {
-                                  case "started" => game.initialize()
+                                  //case "started" => game.initialize()
                                   case "left" => IO.println("player left")
                                   case message => IO.println(s"got $message") *> game.webSocketHub.sendToGame(playerID)(message)
                                 },
@@ -111,46 +110,30 @@ object Lobby extends IOApp {
                   })
               } yield res
 
-//            // websocat ws://127.0.0.1:8080/start/room1
-//            case GET -> Root / "start" / roomName =>
-//              for {
-//                rooms <- roomsRef.get.map(_.keys.toList)
-//                res <-
-//                  if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
-//                  else
-//                    roomsRef.get.flatMap(rooms => {
-//                      rooms
-//                        .get(roomName.trim)
-//                        .fold(BadRequest("error"))(room =>
-//                          room.startGame2 *> Accepted()
-//                        )
-//                    })
-//              } yield res
+            // websocat ws://127.0.0.1:8080/start/room1
+            case GET -> Root / "start" / roomName =>
+              for {
+                games <- gamesRef.get.map(_.keys.toList)
+                res <-
+                  if (!games.contains(roomName.trim)) BadRequest("error" -> "Room doesn't exist".asJson)
+                  else
+                    gamesRef.get.flatMap(rooms => {
+                      rooms
+                        .get(roomName.trim)
+                        .fold(BadRequest("error" -> "error".asJson))(game =>
+                          game.start() *> Ok()
+                        )
+                    })
+              } yield res
 
             case GET -> Root / "recipes" =>
               val recipes = Recipes.recipesList.asJson.noSpaces
               Ok().map(_.withEntity(recipes))
 
-//            // websocat ws://127.0.0.1:8080/start2/room1
-//            case GET -> Root / "start2" / roomName =>
-//              for {
-//                rooms <- roomsRef.get.map(_.keys.toList)
-//                res <-
-//                  if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
-//                  else
-//                    roomsRef.get.flatMap(rooms => {
-//                      rooms
-//                        .get(roomName.trim)
-//                        .fold(BadRequest("error"))(room =>
-//                          room.startGame.flatMap {
-//                            case Left(value)  => BadRequest(value)
-//                            case Right(value) => Accepted(value)
-//                          }
-//                        )
-//                    })
-//              } yield res
+            case GET -> Root / "ping" =>
+              Ok().map(_.withEntity("pong"))
 
-            // maybe initialize game on create room
+
             case req @ POST -> Root / "create" =>
               req.decodeJson[RoomCreationForm].flatMap { form =>
                 val roomName     = form.roomName

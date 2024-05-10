@@ -513,82 +513,6 @@ case object StickyFingers extends Recipe {
   override val cardsOnStart: Int => Int = `# Players` => if(`# Players`==maxPlayers) 5 else 7
 }
 
-/*case object SharingIsCaring2P extends Recipe {
-  override val name: String = "Sharing Is Caring"
-  override val description: String = "What's mine is yours... even the bad stuff, but for two players."
-  override val cardCount: Int => Map[Card, Int] =
-    _ =>
-      Map(
-        ExplodingKitten -> 1,
-        Defuse -> 3,
-        Mark -> 2,
-        ShareTheFuture3X -> 2,
-        Skip -> 3,
-        IllTakeThat -> 1,
-        Tacocat -> 2,
-        RainbowRalphingCat -> 2,
-        FeralCat -> 4,
-        BarkingKitten -> 2
-      )
-  override val minPlayers: Int = 2
-  override val maxPlayers: Int = 2
-  override val defusesOnStart: Int = 1
-  override val playTime: Duration = 10.minutes
-  override val cardsOnStart: Int => Int = _ => 7
-}
-
-case object PowerPlay2P extends Recipe {
-  override val cardCount: Int => Map[Card, Int] =
-    _ =>
-      Map(
-        ExplodingKitten -> 1,
-        Defuse -> 3,
-        ImplodingKitten -> 1,
-        StreakingKitten -> 1,
-        Nope -> 2,
-        SeeTheFuture3X -> 1,
-        ShareTheFuture3X -> 1,
-        Attack2X -> 2,
-        DrawFromTheBottom -> 1,
-        Skip -> 1,
-        SuperSkip -> 1,
-        Tacocat -> 2,
-        FeralCat -> 4,
-        GarbageCollection -> 1
-      )
-  override val minPlayers: Int = 2
-  override val maxPlayers: Int = 2
-  override val defusesOnStart: Int = 1
-  override val playTime: Duration = 10.minutes
-  override val cardsOnStart: Int => Int = _ => 7
-  override val name: String = "Power Play"
-  override val description: String = "A game where there are no small moves, but for 2 players"
-}
-
-case object BlackHole2P extends Recipe {
-  override val cardCount: Int => Map[Card, Int] =
-    _ =>
-      Map(
-        ImplodingKitten -> 1,
-        Skip -> 3,
-        Nope -> 3,
-        Shuffle -> 2,
-        AlterTheFuture3X -> 2,
-        SwapTopAndBottom ->1,
-        DrawFromTheBottom -> 1,
-        Tacocat -> 2,
-        RainbowRalphingCat -> 2,
-        FeralCat -> 4
-      )
-  override val minPlayers: Int = 3
-  override val maxPlayers: Int = 5
-  override val defusesOnStart: Int = 0
-  override val playTime: Duration = 15.minutes
-  override val cardsOnStart: Int => Int = `# Players` => if(`# Players`==maxPlayers) 5 else 7
-  override val name: String = "Black Hole"
-  override val description: String = "A game with only Imploding Kittens, but for 2 players"
-}
-*/
 case object ThePurrage extends Recipe {
   override val name: String = "The  Purrage"
   override val description: String = "A game of betrayal as created by Smosh Games!"
@@ -758,6 +682,11 @@ object Recipes {
       "available" -> recipe.available.asJson
     )
 
+  /**
+   * finds Recipe with name
+   * @param n name of the recioe
+   * @return option of recipe
+   */
   def getRecipe(n: String): Option[Recipe] = recipesList.find(_.name == n)
 
 }

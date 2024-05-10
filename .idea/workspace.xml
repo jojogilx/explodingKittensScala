@@ -4,15 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="Restructure to delete room">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="deleted room. create, recipes and join working. reconnect needs change">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/players/Player.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/players/Player.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -144,14 +143,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00035" summary="Game Working with refs.&#10;&#10;&gt; sometimes players lose connection&#10;&gt; missing handle lost comm&#10;&gt; some cards are buggy">
-      <option name="closed" value="true" />
-      <created>1710428246156</created>
-      <option name="number" value="00035" />
-      <option name="presentableId" value="LOCAL-00035" />
-      <option name="project" value="LOCAL" />
-      <updated>1710428246156</updated>
     </task>
     <task id="LOCAL-00036" summary="fixed buggy input">
       <option name="closed" value="true" />
@@ -537,7 +528,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715329457193</updated>
     </task>
-    <option name="localTasksCounter" value="84" />
+    <task id="LOCAL-00084" summary="deleted room. create, recipes and join working. reconnect needs change">
+      <option name="closed" value="true" />
+      <created>1715336223002</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1715336223002</updated>
+    </task>
+    <option name="localTasksCounter" value="85" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -553,7 +552,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fixed stealing cards" />
     <MESSAGE value="closed players on game end.&#10;4th milestone completed" />
     <MESSAGE value="removed extra bombs" />
     <MESSAGE value="fix bug where stealing one card would remove all cards of that type" />
@@ -578,6 +576,7 @@
     <MESSAGE value="FE" />
     <MESSAGE value="play card is ok" />
     <MESSAGE value="Restructure to delete room" />
-    <option name="LAST_COMMIT_MESSAGE" value="Restructure to delete room" />
+    <MESSAGE value="deleted room. create, recipes and join working. reconnect needs change" />
+    <option name="LAST_COMMIT_MESSAGE" value="deleted room. create, recipes and join working. reconnect needs change" />
   </component>
 </project>
