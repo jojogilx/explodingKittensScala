@@ -2,9 +2,11 @@ package game
 
 import card.Deck._
 import card._
+import cats.effect.std.Queue
 import cats.effect.{Deferred, IO, Ref}
 import cats.implicits._
 import gamestate._
+import org.http4s.websocket.WebSocketFrame
 import players.Player
 import players.Player.{Hand, PlayerID}
 import websockethub.Event._
@@ -14,6 +16,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 case class Game(
+    roomName: String,
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
     stateManager: StateManager,
@@ -21,21 +24,43 @@ case class Game(
     recipe: Recipe
 ) {
 
+
   /** Creates a player with PlayerID and joins the game
     * @param playerID
     *   id of the player
     */
-  def joinGame(playerID: PlayerID): IO[Unit] =
+  def join(playerID: PlayerID, queue: Queue[IO,WebSocketFrame]): IO[Either[String, Unit]] =
+
     for {
-      deferred <- Deferred[IO, Boolean]
-      _ <- gameStateRef.update { gameState =>
-        val disconnectedPlayers = gameState.disconnections + (playerID -> deferred)
-        val newPlayer           = Player(playerID)
-        val updatedPlayers      = newPlayer :: gameState.players
-        gameState.disconnections + (playerID -> Deferred)
-        gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
+      state <- gameStateRef.get
+      isAlreadyConnected = state.players.contains(Player(playerID, _))
+      cantJoin = state.started || (recipe.maxPlayers < state.players.length + 1)
+      res <-
+      if (cantJoin) IO(Left("Can't Join"))
+      else if(isAlreadyConnected) {
+        for {
+          _<-  webSocketHub.connect(playerID, queue, playerDisconnected(playerID))
+          _ <- reconnect(playerID)
+          _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(state.players, recipe))
+        } yield Right ()
       }
-    } yield ()
+      else {
+        for {
+            deferred <- Deferred[IO, Boolean]
+          _ <- webSocketHub.connect(playerID, queue, playerDisconnected(playerID))
+          newState <- gameStateRef.updateAndGet { gameState =>
+            val disconnectedPlayers = gameState.disconnections + (playerID -> deferred)
+            val newPlayer = Player(playerID, gameState.players.length)
+            val updatedPlayers = newPlayer :: gameState.players
+            gameState.disconnections + (playerID -> Deferred)
+            gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
+          }
+          _ <- webSocketHub.broadcast(Joined(playerID, newState.players))
+          _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(newState.players, recipe))
+        } yield Right ()
+      }
+    } yield res
+
 
   def reconnect(playerID: PlayerID): IO[Unit] = {
     for {
@@ -59,13 +84,15 @@ case class Game(
       for {
         gameState <- gameStateRef.get
         deferred  <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
+                 _ <- webSocketHub.disconnectPlayer(playerID)
+
         _         <- deferred.complete(true)
       } yield ()
-    } *> gameStateRef.update(gameState => {
+    } *> gameStateRef.modify(gameState => {
       val newPlayers = gameState.players.filterNot(_.playerID == playerID)
 
-      gameState.copy(players = newPlayers)
-    }) /* *> webSocketHub.broadcast(LeftGame(playerID, newPlayers))*/
+      (gameState.copy(players = newPlayers), newPlayers)
+    }).flatMap( players => webSocketHub.broadcast(LeftGame(playerID, players)))
 
   // -----manage player turns -------------------------------//
 
@@ -1011,8 +1038,9 @@ object Game {
     *   game created
     */
   def create(
-      nPlayers: Int,
-      webSocketHub: WebSocketHub,
+      roomName: String,
+//      nPlayers: Int,
+//      webSocketHub: WebSocketHub,
       recipe: Recipe
   ): IO[Game] = {
 
@@ -1020,6 +1048,7 @@ object Game {
     val playersList        = List.empty
 
     val initialState = State(
+      started = false,
       Deck(List.empty),
       Deck(List.empty),
       currentPlayerIndex,
@@ -1030,9 +1059,10 @@ object Game {
     )
 
     for {
+      webSocketHub <- WebSocketHub.of
       stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
       prompter = PromptsHandler(webSocketHub)
-    } yield new Game(webSocketHub, gameStateRef, stateManager, prompter, recipe)
+    } yield new Game(roomName, webSocketHub, gameStateRef, stateManager, prompter, recipe)
   }
 }

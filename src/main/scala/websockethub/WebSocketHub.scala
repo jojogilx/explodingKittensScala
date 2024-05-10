@@ -17,7 +17,7 @@ trait WebSocketHub {
   def sendToPlayer(player: PlayerID)(message: Message): IO[Unit]
   def sendToPlayer2(player: PlayerID)(event: Event): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
-  def sendToGame(playerID: PlayerID, message: Message): IO[Unit]
+  def sendToGame(playerID: PlayerID)(message: Message): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
 
   def broadcast(message: String): IO[Unit]
@@ -106,7 +106,7 @@ object WebSocketHub {
       )
     }
 
-    override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
+    override def sendToGame(playerID: PlayerID)(message: String): IO[Unit] = {
       systemQueue.offer((playerID, message))
     }
 

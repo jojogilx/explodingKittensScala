@@ -5,17 +5,18 @@ import card.{Card, Recipe}
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax.EncoderOps
+import players.Player
 import players.Player.{Hand, PlayerID}
 sealed trait Event
 object Event {
 
 
-  case class Joined(player: String, player_list: List[(String, Int)]) extends Event
-  case class LeftGame(player: String, player_list: List[(String, Int)]) extends Event
+  case class Joined(player: String, player_list: List[Player]) extends Event
+  case class LeftGame(player: String, player_list: List[Player]) extends Event
   case class Started()                                                        extends Event
   case class Information(information: String)                                 extends Event
   case class Error(error: String)                                 extends Event
-  case class RoomStateEvent(player_list: List[(String, Int)], recipe: Recipe) extends Event
+  case class RoomStateEvent(player_list: List[Player], recipe: Recipe) extends Event
   case class NewTurn(player: String) extends Event
   case class Winner(player: String) extends Event
   case class HandEvent(player_hand: Hand) extends Event

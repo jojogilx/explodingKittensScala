@@ -48,7 +48,7 @@ object StateManager {
                 )
 
               case AddPlayer(player) =>
-                val newPlayer      = Player(player)
+                val newPlayer      = Player(player, 0)
                 val updatedPlayers = newPlayer :: state.players
 
                 (state.copy(players = updatedPlayers), IO.unit)
