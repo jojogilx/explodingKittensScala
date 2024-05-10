@@ -4,15 +4,8 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="deleted room. create, recipes and join working. reconnect needs change">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="added some documentation.&#10;cleaned up some code.&#10;potential fix for start">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,24 +74,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Application.Lobby.executor&quot;: &quot;Run&quot;,
-    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;restructuring-websockets&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/jmorais/Desktop/Bootcamp/Backend/Scala Project/ExplodingKittens&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Problems&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.build.tools.auto.reload&quot;: &quot;ALL&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;sbt.project.settings.configurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Application.Lobby.executor": "Run",
+    "Application.Main.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/jmorais/Desktop/Bootcamp/Backend/Scala Project/ExplodingKittens",
+    "project.structure.last.edited": "Problems",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.2",
+    "settings.build.tools.auto.reload": "ALL",
+    "settings.editor.selected.configurable": "sbt.project.settings.configurable"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Application.Lobby">
     <configuration name="Lobby" type="Application" factoryName="Application" temporary="true">
       <option name="MAIN_CLASS_NAME" value="game.Lobby" />
@@ -552,7 +545,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="closed players on game end.&#10;4th milestone completed" />
     <MESSAGE value="removed extra bombs" />
     <MESSAGE value="fix bug where stealing one card would remove all cards of that type" />
     <MESSAGE value="putting bombs back on deck after defusing" />
@@ -577,6 +569,7 @@
     <MESSAGE value="play card is ok" />
     <MESSAGE value="Restructure to delete room" />
     <MESSAGE value="deleted room. create, recipes and join working. reconnect needs change" />
-    <option name="LAST_COMMIT_MESSAGE" value="deleted room. create, recipes and join working. reconnect needs change" />
+    <MESSAGE value="added some documentation.&#10;cleaned up some code.&#10;potential fix for start" />
+    <option name="LAST_COMMIT_MESSAGE" value="added some documentation.&#10;cleaned up some code.&#10;potential fix for start" />
   </component>
 </project>
