@@ -39,10 +39,16 @@ case class Game(
 
   def reconnect(playerID: PlayerID): IO[Unit] = {
     for {
-      _<- IO.println(s"TODO ${playerID}")
+      handOpt <- getPlayerHand(playerID)
+      _ <- handOpt.fold(IO.println("recon failed to update hand"))(hand => webSocketHub.sendToPlayer2(playerID)(HandEvent(hand)))
     } yield ()
   }
 
+
+  def getPlayerHand(playerID: PlayerID): IO[Option[Hand]] =
+    gameStateRef.get.map { gameState =>
+      gameState.playersHands.find { case (`playerID`, _) => true }.map(_._2)
+    }
 
   /** Callback that warns the game the player disconnected
     * @param playerID
@@ -337,7 +343,7 @@ case class Game(
           if (!playerSkipped) {
             for {
               card <- drawCard()
-              _    <- webSocketHub.sendToPlayer2(playerID)(DrawCard(card))
+              _    <- webSocketHub.sendToPlayer2(playerID)(DrawCardEvent(card, none))
               _ <- card match {
                 case ExplodingKitten =>
                   for {

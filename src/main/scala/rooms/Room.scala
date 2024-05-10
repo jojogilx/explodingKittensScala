@@ -27,15 +27,21 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       started <- stateRef.get.map(_.started)
       res <- if(playerID.isEmpty) Left("no player Id").pure[IO]
         else if (currentPlayers.length == 5) Left("This room is full").pure[IO]
-        else if (started) Left("The game already started").pure[IO]
+        else if (started && !currentPlayers.contains(playerID)) Left("The game already started").pure[IO]
         else {
           for {
             _ <- if(currentPlayers.contains(playerID)) {
               for {
+                _<-IO.println("a")
                 _<-  webSocketHub.connect(playerID, queue, game.playerDisconnected(playerID))
+                _<-IO.println("b")
+
                 _ <- game.reconnect(playerID)
+                _<-IO.println("c")
+
                 state <- stateRef.get
                 _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(state.seatings.toList, state.recipe))
+                _<-IO.println("d")
 
               } yield ()
             }
@@ -75,17 +81,18 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
    */
   def startGame: IO[Either[String,IO[Unit]]] =
     for {
-      nCurrentPlayers <- stateRef.get.map(_.players.length)
+      state <- stateRef.get
       res <-
-        if (0 == nCurrentPlayers) Left(s"Not enough players ($nCurrentPlayers/0)").pure[IO]
-        else /*stateRef.update(roomState => roomState.copy(started = true)) *> */Right(game.initialize()).pure[IO]
+        if (state.recipe.minPlayers > state.players.length) Left(s"Not enough players (${state.players.length}/${state.recipe.minPlayers})").pure[IO]
+        else if(state.started) Left("Already started").pure[IO]
+        else stateRef.update(roomState => roomState.copy(started = true)) *> Right(game.initialize()).pure[IO]
     } yield res
 
   def startGame2: IO[Unit] =
     for {
       state <- stateRef.get
       res <-
-        if (0 == state.players.length) webSocketHub.broadcast(Information(s"Not enough players (${state.players.length}/0)"))
+        if (state.recipe.minPlayers > state.players.length) webSocketHub.broadcast(Error(s"Not enough players (${state.players.length}/${state.recipe.minPlayers})"))
         else if(state.started) IO.unit
         else stateRef.update(roomState => roomState.copy(started = true)) *> game.initialize()
     } yield res
@@ -99,6 +106,7 @@ case class Room(webSocketHub: WebSocketHub, game: Game, name: String, stateRef: 
       message match {
         case "started" => startGame2.flatMap(_ => IO.unit)
         case "left" => IO.println("player left")
+        case "ping" => webSocketHub.sendToPlayer2(playerID)(Information("pong"))
         case _ => IO.println(s"got $message") *> webSocketHub.sendToGame(playerID, message)
       }
   }

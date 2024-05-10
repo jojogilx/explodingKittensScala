@@ -94,8 +94,11 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 
   def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] =
     for {
+      _ <- IO.println("oi")
       _ <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand))// switch to a PlayCardRequest
+      _ <- IO.println("oi2")
       answer <- webSocketHub.getGameInput(player.playerID)
+      _ <- IO.println(s"answer is $answer")
       result <- answer match {
         case "n" => None.pure[IO]
         case s"${c1},${c2}" =>
@@ -155,6 +158,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
             player,playerHand
           )
       }
+      _ <- IO.println("end")
     } yield result
 
 

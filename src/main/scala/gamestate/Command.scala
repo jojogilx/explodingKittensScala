@@ -1,6 +1,5 @@
 package gamestate
 
-import card.{Card, Deck}
 import cats.effect.{Deferred, IO}
 import players.Player._
 
@@ -21,6 +20,7 @@ object Command {
   final case class PlayCard(playerID: PlayerID, index: Int) extends Command
 
   final case class KillCurrentPlayer() extends Command
+  final case class TryDefuse(playerID: PlayerID) extends Command
 
 }
 

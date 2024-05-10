@@ -4,10 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="FE">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="play card is ok">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/Command.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/Command.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/rooms/Room.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
@@ -140,14 +144,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00033" summary="refactoring to command">
-      <option name="closed" value="true" />
-      <created>1710414336132</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1710414336132</updated>
     </task>
     <task id="LOCAL-00034" summary="back to refs">
       <option name="closed" value="true" />
@@ -533,7 +529,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715176857067</updated>
     </task>
-    <option name="localTasksCounter" value="82" />
+    <task id="LOCAL-00082" summary="play card is ok">
+      <option name="closed" value="true" />
+      <created>1715251660547</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1715251660547</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -549,7 +553,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="fixed targeted attack&#10;started to try to warn players of game end" />
     <MESSAGE value="fixed nope card" />
     <MESSAGE value="fixed stealing cards" />
     <MESSAGE value="closed players on game end.&#10;4th milestone completed" />
@@ -574,6 +577,7 @@
     <MESSAGE value="CORS solved" />
     <MESSAGE value="started to send events to FE" />
     <MESSAGE value="FE" />
-    <option name="LAST_COMMIT_MESSAGE" value="FE" />
+    <MESSAGE value="play card is ok" />
+    <option name="LAST_COMMIT_MESSAGE" value="play card is ok" />
   </component>
 </project>

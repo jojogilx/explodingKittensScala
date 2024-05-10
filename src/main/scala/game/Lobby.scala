@@ -36,22 +36,20 @@ object Lobby extends IOApp {
               "name"    -> r.name.asJson,
               "players" -> state.players.asJson,
               "started" -> state.started.asJson,
-              "recipe" -> state.recipe.asJson
+              "recipe"  -> state.recipe.asJson
             )
           )
           .unsafeRunSync()
       )
     }.asJson
 
-
   case class RoomCreationForm(roomName: String, playerName: String, recipeName: String)
 
   implicit val RoomCreateDecoder = deriveDecoder[RoomCreationForm]
 
-
   private def httpApp: IO[WebSocketBuilder2[IO] => HttpApp[IO]] = {
     for {
-      roomsRef   <- Ref.of[IO, Map[String, Room]](Map.empty)
+      roomsRef      <- Ref.of[IO, Map[String, Room]](Map.empty)
       roomsQueueRef <- Ref.of[IO, Map[UUID, Queue[IO, WebSocketFrame]]](Map.empty)
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
@@ -62,10 +60,10 @@ object Lobby extends IOApp {
             // curl GET http://127.0.0.1:8080/rooms
             case GET -> Root / "rooms" =>
               for {
-                map <- roomsRef.get
+                map  <- roomsRef.get
                 uuid <- IO.randomUUID
-                q <- Queue.unbounded[IO, WebSocketFrame]
-                _ <- roomsQueueRef.update(_ + (uuid -> q))
+                q    <- Queue.unbounded[IO, WebSocketFrame]
+                _    <- roomsQueueRef.update(_ + (uuid -> q))
                 _ <- roomsQueueRef.get.flatMap(queues =>
                   queues.values.toList.traverse { queue =>
                     queue.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))
@@ -80,7 +78,6 @@ object Lobby extends IOApp {
                 )
               } yield w
 
-
             /*
             curl -X POST \
             -d 'name=room1' \
@@ -89,8 +86,8 @@ object Lobby extends IOApp {
 
             // maybe initialize game on create room
             case req @ POST -> Root / "create" =>
-               req.decodeJson[RoomCreationForm].flatMap { form =>
-                val roomName = form.roomName
+              req.decodeJson[RoomCreationForm].flatMap { form =>
+                val roomName     = form.roomName
                 val recipeOption = getRecipe(form.recipeName)
 
                 for {
@@ -99,10 +96,15 @@ object Lobby extends IOApp {
                     if (rooms.contains(roomName.trim)) IO.println("exists") *> BadRequest("Room already exists")
                     else {
                       for {
-                        room <- recipeOption.fold(IO.println(s"no recipe? $recipeOption") *> IO.raiseError[Room](new Exception("Recipe not found")))(recipe => Room.create(roomName.trim, recipe))
-                        map  <- roomsRef.updateAndGet(rooms => rooms + (roomName.trim -> room))
-                        _    <- roomsQueueRef.get.flatMap(m => m.values.toList.traverse(_.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces))))
-                        res  <- Ok()
+                        room <- recipeOption.fold(
+                          IO.println(s"no recipe? $recipeOption") *> IO
+                            .raiseError[Room](new Exception("Recipe not found"))
+                        )(recipe => Room.create(roomName.trim, recipe))
+                        map <- roomsRef.updateAndGet(rooms => rooms + (roomName.trim -> room))
+                        _ <- roomsQueueRef.get.flatMap(m =>
+                          m.values.toList.traverse(_.offer(WebSocketFrame.Text(map.values.toList.asJson.noSpaces)))
+                        )
+                        res <- Ok()
                       } yield res
                     }
                 } yield res
@@ -112,36 +114,34 @@ object Lobby extends IOApp {
 
             // websocat ws://127.0.0.1:8080/join/room1/player1
             case GET -> Root / "join" / roomName / playerID =>
-                for {
-                  rooms <- roomsRef.get.map(_.keys.toList)
-                  q <- Queue.unbounded[IO, WebSocketFrame]
-                  res <-
-                    if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
-                    else
-                      roomsRef.get.flatMap(rooms => {
-                        rooms
-                          .get(roomName.trim)
-                          .fold(BadRequest("error"))(room =>
-                            room.join(playerID.trim, q).flatMap {
-                              case Left(value) => BadRequest(value)
-                              case Right(_) => // this doesn't work because
-                                wsb
-                                  .build(
-                                    receive = _.filter({
-                                      case WebSocketFrame.Text(_) => true
-                                      case _ => false
-                                    }).map({ case WebSocketFrame.Text(text, _) =>
-                                      text
-                                    }).evalMap(room.sendToGame(playerID.trim)),
-                                    send = Stream
-                                      .repeatEval(q.take)
-                                  )
-                                  .onCancel(room.leave(playerID.trim))
-                            }
-                          )
-                      })
-                } yield res
-
+              for {
+                rooms <- roomsRef.get.map(_.keys.toList)
+                q     <- Queue.unbounded[IO, WebSocketFrame]
+                res <-
+                  roomsRef.get.flatMap(rooms => {
+                    rooms
+                      .get(roomName.trim)
+                      .fold(IO.println("no room") *> BadRequest("No such room"))(room =>
+                        room.join(playerID.trim, q).flatMap {
+                          case Left(value) => IO.println(s"error was $value") *> BadRequest(value)
+                          case Right(_) => // this doesn't work because
+                            wsb
+                              .build(
+                                receive = _.filter({
+                                  case WebSocketFrame.Text(_) => true
+                                  case _                      => false
+                                }).map({ case WebSocketFrame.Text(text, _) =>
+                                  text
+                                }).evalMap(room.sendToGame(playerID.trim)),
+                                send = Stream.awakeEvery[IO](30.seconds)
+                                  .map(_ => WebSocketFrame.Text("ping")) merge Stream
+                                  .repeatEval(q.take)
+                              ).onError(err => IO.println(s"error in ws $err"))
+                              .onCancel(room.leave(playerID.trim))
+                        }
+                      )
+                  })
+              } yield res
 
             // websocat ws://127.0.0.1:8080/start/room1
             case GET -> Root / "start" / roomName =>
@@ -154,18 +154,35 @@ object Lobby extends IOApp {
                       rooms
                         .get(roomName.trim)
                         .fold(BadRequest("error"))(room =>
+                          room.startGame2 *> Accepted()
+                        )
+                    })
+              } yield res
+
+            case GET -> Root / "recipes" =>
+              val recipes = Recipes.recipesList.asJson.noSpaces
+              Ok().map(_.withEntity(recipes))
+
+
+            // websocat ws://127.0.0.1:8080/start2/room1
+            case GET -> Root / "start2" / roomName =>
+              for {
+                rooms <- roomsRef.get.map(_.keys.toList)
+                res <-
+                  if (!rooms.contains(roomName.trim)) BadRequest("Room doesn't exist")
+                  else
+                    roomsRef.get.flatMap(rooms => {
+                      rooms
+                        .get(roomName.trim)
+                        .fold(BadRequest("error"))(room =>
                           room.startGame.flatMap {
                             case Left(value)  => BadRequest(value)
-                            case Right(value) => room.webSocketHub.broadcast(Started()) *> Accepted(value)
+                            case Right(value) => Accepted(value)
                           }
                         )
                     })
               } yield res
 
-
-            case GET -> Root / "recipes" =>
-              val recipes = Recipes.recipesList.asJson.noSpaces
-              Ok().map(_.withEntity(recipes))
 
           }
           .orNotFound

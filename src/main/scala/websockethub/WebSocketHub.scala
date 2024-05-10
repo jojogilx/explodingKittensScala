@@ -43,8 +43,6 @@ object WebSocketHub {
         queue: Queue[IO, WebSocketFrame],
         onDisconnected: IO[Unit]
     ): IO[Unit] = {
-      println(s"$player connected")
-
       stateRef.update(_ + (player -> (queue, onDisconnected)))
     }
 
@@ -109,7 +107,7 @@ object WebSocketHub {
     }
 
     override def sendToGame(playerID: PlayerID, message: String): IO[Unit] = {
-      systemQueue.offer((playerID, message)) *> IO.println("added")
+      systemQueue.offer((playerID, message))
     }
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
