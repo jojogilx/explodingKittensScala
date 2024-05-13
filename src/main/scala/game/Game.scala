@@ -267,9 +267,7 @@ case class Game(
 
 
         // loop this until answer is no or skipped
-        hand <- gameStateRef.get.map { gameState =>
-          gameState.playersHands.find { case (`playerID`, _) => true }.map(_._2)
-        }
+        hand <- getHand(playerID)
 
         playOrPass <- hand.fold(none[List[Int]].pure[IO])(hand =>
           if (canPlayAnything(hand))
@@ -283,9 +281,7 @@ case class Game(
             acc.combineK(handleCardPlayed(currentPlayer, playCard(i)))
           }.flatTap(_ =>
             for {
-              hand <- gameStateRef.get.map { gameState =>
-                gameState.playersHands.find { case (`playerID`, _) => true }.map(_._2)
-              }
+              hand <- getHand(playerID)
               _ <- webSocketHub.sendToPlayer2(playerID)(HandEvent(hand.get))
           } yield () )
         ) // If card played, does player skip draw?
@@ -296,6 +292,7 @@ case class Game(
             for {
               card <- drawCard(true)
               _    <- webSocketHub.sendToPlayer2(playerID)(DrawCardEvent(card, none))
+
               _ <- card match {
                 case ExplodingKitten =>
                   for {
@@ -324,11 +321,24 @@ case class Game(
                 case _ => IO.unit
               }
             } yield ()
-          } else IO.unit
+          } else webSocketHub.broadcast(Information(s"$playerID Skipped"))
 
       } yield ()
     )
     .void
+
+
+
+/*  private def playCards(playerID: PlayerID): IO[Unit] =
+    for {
+
+    } yield ()*/
+
+
+  private def getHand(playerID: PlayerID): IO[Option[Hand]] =
+    gameStateRef.get.map { state =>
+      state.playersHands.find { case (pID, _) => pID == playerID }.map(_._2)
+    }
 
   private def canPlayAnything(hand: Hand): Boolean =
     hand.nonEmpty && !hand.forall(_ match {
@@ -509,7 +519,7 @@ case class Game(
         ),
         card
       )
-    }
+    }.flatTap(card => webSocketHub.broadcast(PlayCardEvent(card)))
 
 
   /** Plays the card with the given player at given index, removing it from the player's hand, discarding it and

@@ -53,6 +53,6 @@ object Event {
     case hand: HandEvent => hand.asJson.mapObject(_.add("event", "hand".asJson))
     case piles: PilesUpdate => piles.asJson.mapObject(_.add("event", "piles".asJson))
     case card: DrawCardEvent => card.asJson.mapObject(_.add("event", "draw_card".asJson))
-    case card: DrawCardEvent => card.asJson.mapObject(_.add("event", "play_card".asJson))
+    case card: PlayCardEvent => card.asJson.mapObject(_.add("event", "play_card".asJson))
   }
 }
