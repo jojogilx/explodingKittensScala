@@ -104,14 +104,6 @@ case object Bury extends Card {
     override val title: String = "Beard Cat"
   }
 
-  case object BikiniCat extends CatCard {
-    override val title: String = "Bikini Cat"
-  }
-
-  case object CatsSchrodinger extends CatCard {
-    override val title: String = "Cat's Schrödinger"
-  }
-
   case object RainbowRalphingCat extends CatCard {
     override val title: String = "Rainbow-Ralphing Cat"
   }

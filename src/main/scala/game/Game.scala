@@ -361,9 +361,7 @@ case class Game(
 
             case AlterTheFuture3X =>
               for {
-                enoughCards <- gameStateRef.get.map(_.drawDeck.length < 3)
-                _           <- IO.unit
-                cards3      <- gameStateRef.get.map(_.drawDeck.getFirstN(3))
+                cards3      <- gameStateRef.get.map(_.drawDeck.getFirstN(3)) //todo: change if the drawdeck has less than 3
                 order       <- alterTheFuture(cards3, player.playerID)
                 _           <- updateDrawDeck(_.alterTheFuture3X(order))
               } yield false
@@ -513,32 +511,6 @@ case class Game(
       )
     }
 
-  /** Plays the cards at given indices, removing them from the player's hand, discarding them
-    *
-    * @param indices
-    *   the indices of the card to play
-    * @return
-    *   Card played
-    */
-  private def playCards(indices: List[Int]): IO[Unit] =
-    gameStateRef.update { gameState =>
-      val currentPlayer = gameState.players(gameState.currentPlayerIndex)
-      val hands         = gameState.playersHands
-
-      val (newHand, discard) = hands(currentPlayer.playerID).zipWithIndex.partition {
-        case (_, i) if indices.contains(i) => false
-        case _                             => true
-      }
-
-      println(s"\nplayed $newHand")
-      println(s"\ndiscarded $discard")
-
-      gameState.copy(
-        discardDeck = gameState.discardDeck.concat(discard.map(_._1)),
-        playersHands = hands + (currentPlayer.playerID -> newHand.map(_._1))
-      )
-
-    }
 
   /** Plays the card with the given player at given index, removing it from the player's hand, discarding it and
     * returning the card
@@ -854,6 +826,7 @@ object Game {
       Deck(List.empty),
       Deck(List.empty),
       currentPlayerIndex,
+      1,
       playersList,
       Map.empty,
       Map.empty,

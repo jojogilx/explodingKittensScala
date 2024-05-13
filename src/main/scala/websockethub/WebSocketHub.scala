@@ -137,7 +137,7 @@ object WebSocketHub {
             .evalMap({
               case (id, str) if str.trim.toLowerCase.replaceAll("\n", "") == message =>
                 deferred.complete(id.some) *> IO.pure(true)
-              case (id, str) =>
+              case (id, _) =>
                 pendingInputsRef.get.map(map => map(id)).flatMap(deferred => deferred.complete(id)) *> IO.pure(false)
             })
             .takeWhile(!_)

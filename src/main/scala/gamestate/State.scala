@@ -11,6 +11,7 @@ case class State(
     drawDeck: Deck,
     discardDeck: Deck,
     currentPlayerIndex: Int,
+    turnsLeft: Int,
     players: List[Player],
     playersHands: Map[PlayerID, Hand],
     disconnections: Map[PlayerID, Deferred[IO, Boolean]],
