@@ -20,7 +20,7 @@ sealed trait Recipe {
 
   override def toString: String = s"$name ($minPlayers-$maxPlayers players) - ${playTime.toMinutes.toInt.toString} min\n$description.\nCards: $getCardList"
 
-  def getCardList(): String =
+  private def getCardList: String =
     cardCount(1000).map {
       case (card, i) if i > 900 => s"$card x (# players${
         val nP = i - 1000
@@ -30,7 +30,7 @@ sealed trait Recipe {
 
     }.mkString("[",", ","]")
 
-  def getCardMap(): List[(Card, String)]
+  def getCardMap: List[(Card, String)]
 
 }
 
@@ -61,7 +61,7 @@ case object NopeSauce extends Recipe {
   override val name: String = "Nope Sauce"
   override val description: String = "A game that's not going to go the way you planned."
 
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
     ExplodingKitten  -> "# Players - 1",
     Defuse           -> "# Players",
@@ -111,7 +111,7 @@ case object AttackOfTheAttacks extends Recipe {
   override val name: String = "Attack of the Attacks"
   override val description: String = "How many turns in a row can you survive?"
 
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
       List(
         ExplodingKitten -> "# Players - 1",
         Defuse -> "# Players + 1",
@@ -134,7 +134,7 @@ case object BlackHole extends Recipe {
   override val cardCount: Int => Map[Card, Int] =
     `# Players` =>
       Map(
-        ImplodingKitten -> (`# Players` - 1),
+        ImplodingKitten(false) -> (`# Players` - 1),
         Skip -> 5,
         Nope -> 4,
         Shuffle -> 5,
@@ -147,9 +147,9 @@ case object BlackHole extends Recipe {
         RainbowRalphingCat -> 3,
         FeralCat -> 4
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
-      ImplodingKitten -> "# Players - 1",
+      ImplodingKitten(false) -> "# Players - 1",
       Skip -> "5",
       Nope -> "4",
       Shuffle -> "5",
@@ -192,7 +192,7 @@ case object DangerMode extends Recipe {
         FeralCat -> 4
       )
 
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "6",
       Defuse -> "# Players",
@@ -235,7 +235,7 @@ case object ExplodingKittensClassicMode extends Recipe {
         BeardCat -> 4,
         RainbowRalphingCat -> 4,
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players + 1",
@@ -266,7 +266,7 @@ case object EyeForAnEye extends Recipe {
       Map(
         ExplodingKitten -> (`# Players` -2),
         Defuse -> (`# Players` + 1),
-        ImplodingKitten -> 1,
+        ImplodingKitten(false) -> 1,
         SeeTheFuture3X -> 5,
         AlterTheFuture3X -> 3,
         AlterTheFuture3XNOW -> 2,
@@ -279,11 +279,11 @@ case object EyeForAnEye extends Recipe {
         Attack2X -> 4,
         Skip -> 4
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 2",
       Defuse -> "# Players + 1",
-      ImplodingKitten -> "1",
+      ImplodingKitten(false) -> "1",
       SeeTheFuture3X -> "5",
       AlterTheFuture3X -> "3",
       AlterTheFuture3XNOW -> "2",
@@ -317,7 +317,7 @@ case object LightningKittens extends Recipe {
         Reverse -> 2,
         Nope -> 2
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players",
@@ -353,7 +353,7 @@ case object Meowsochist extends Recipe {
         FeralCat -> 6,
         StreakingKitten -> 1
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players",
       Defuse -> "# Players + 3",
@@ -385,7 +385,7 @@ case object PowerPlay extends Recipe {
       Map(
         ExplodingKitten -> (`# Players` - 1),
         Defuse -> (`# Players` + 2),
-        ImplodingKitten -> 1,
+        ImplodingKitten(false) -> 1,
         StreakingKitten -> 1,
         Nope -> 4,
         SeeTheFuture3X -> 3,
@@ -399,11 +399,11 @@ case object PowerPlay extends Recipe {
         FeralCat -> 6,
         GarbageCollection -> 2
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players + 2",
-      ImplodingKitten -> "1",
+      ImplodingKitten(false) -> "1",
       StreakingKitten -> "1",
       Nope -> "4",
       SeeTheFuture3X -> "3",
@@ -446,7 +446,7 @@ case object SharingIsCaring extends Recipe {
         FeralCat -> 4,
         BarkingKitten -> 2
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players + 1",
@@ -489,7 +489,7 @@ case object StickyFingers extends Recipe {
         FeralCat -> 6,
 
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players",
       Defuse -> "# Players + 1",
@@ -521,7 +521,7 @@ case object ThePurrage extends Recipe {
       Map(
         ExplodingKitten -> (`# Players` - 1),
         Defuse -> `# Players`,
-        ImplodingKitten -> 1,
+        ImplodingKitten(false) -> 1,
         CatomicBomb -> 1,
         SuperSkip -> 2,
         Skip -> 5,
@@ -532,11 +532,11 @@ case object ThePurrage extends Recipe {
         Shuffle -> 5,
         Nope -> 8
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players",
-      ImplodingKitten -> "1",
+      ImplodingKitten(false) -> "1",
       CatomicBomb -> "1",
       SuperSkip -> "2",
       Skip -> "5",
@@ -574,7 +574,7 @@ case object MindGames extends Recipe {
         RainbowRalphingCat -> 4,
         ZombieCat -> 4
       )
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players",
@@ -603,7 +603,7 @@ case object CardHoarders extends Recipe {
     `# Players` =>
       Map(ExplodingKitten -> {if(`# Players` == maxPlayers) 2 else 1},
         Defuse -> `# Players`,
-        ImplodingKitten -> 1,
+        ImplodingKitten(false) -> 1,
         SeeTheFuture3X -> 4,
         ShareTheFuture3X -> 4,
         SwapTopAndBottom -> 3,
@@ -613,11 +613,11 @@ case object CardHoarders extends Recipe {
         RainbowRalphingCat -> 4,
         ZombieCat -> 4,
         Nope -> 4)
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "2-3 Players: 1; 4 Players: 2",
       Defuse -> "# Players",
-      ImplodingKitten -> "1",
+      ImplodingKitten(false) -> "1",
       SeeTheFuture3X -> "4",
       ShareTheFuture3X -> "4",
       SwapTopAndBottom -> "3",
@@ -649,7 +649,7 @@ case object CatFight extends Recipe {
         Nope -> 3,
         AlterTheFuture3XNOW -> 2,
         Reverse -> 3)
-  override def getCardMap(): List[(Card, String)] =
+  override def getCardMap: List[(Card, String)] =
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players",
@@ -678,7 +678,7 @@ object Recipes {
       "max_players"      -> recipe.maxPlayers.asJson,
       "defuses_on_start" -> recipe.defusesOnStart.asJson,
       "duration"         -> recipe.playTime.toMinutes.asJson,
-      "cards"            -> recipe.getCardMap().asJson,
+      "cards"            -> recipe.getCardMap.asJson,
       "available" -> recipe.available.asJson
     )
 

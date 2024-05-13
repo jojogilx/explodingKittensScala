@@ -212,7 +212,7 @@ case class Game(
         ) // > avoid head
 
       }
-      .flatMap(player => webSocketHub.broadcast("DIED"))
+      .flatMap(player => webSocketHub.broadcast(s" $player DIED"))
 
   /** Checks if the game currently has a winner, meaning there is only one player left
     * @return
@@ -310,7 +310,16 @@ case class Game(
                       } yield ()
                     )
                   } yield ()
-                case ImplodingKitten => ???
+                case ImplodingKitten(true) =>
+                  for {
+                    _ <- webSocketHub.broadcast(Information(s"$playerID imploded"))
+                    _ <- killCurrentPlayer
+                  } yield ()
+                case ImplodingKitten(false) =>
+                  for {
+                    _ <- webSocketHub.sendToPlayer2(playerID)(Information("bury face up"))
+                    _ <- buryCard(playerID, ImplodingKitten(true))
+                  } yield ()
 
                 case _ => IO.unit
               }
@@ -327,104 +336,6 @@ case class Game(
       case _                               => false
     })
 
-  /** Prompt that asks if and which card the player wants to play
-    * @param player
-    *   current player
-    * @return
-    *   optional of the index of card played
-    */
-  private def playOrPassPrompt(player: Player): IO[Option[Int]] =
-    for {
-      state <- gameStateRef.get
-      _ <- webSocketHub.broadcast(
-        s"Draw pile size: ${state.drawDeck.length} cards${state.discardDeck.topCard
-            .fold("")(card => s", last played card was $card")}"
-      )
-      _ <- webSocketHub.sendToPlayer(player.playerID)(s"$player, do you wish to play a card?")
-      playerHand = state.playersHands(player.playerID)
-
-      _ <- webSocketHub.sendToPlayer(player.playerID)(
-        "Enter the index of the card you want to play (n to Pass or index -h to get card description) (to use cat cards combo: e.g. 1,2 or 1,2,3)>> "
-      )
-      answer <- webSocketHub.getGameInput(player.playerID)
-      result <- answer match {
-        case "n" => None.pure[IO]
-        case s"$index -h" if index.toIntOption.isDefined =>
-          index.toInt - 1 match {
-            case i if playerHand.indices contains i =>
-              webSocketHub.sendToPlayer(player.playerID)(playerHand(i).toString) *> playOrPassPrompt(
-                player
-              )
-            case _ =>
-              webSocketHub.sendToPlayer(player.playerID)(
-                "Invalid index (e.g.: 1 -h)"
-              ) *> playOrPassPrompt(
-                player
-              )
-          }
-        case s"${c1},${c2}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined =>
-          {
-            List(c1.toInt - 1, c2.toInt - 1) match {
-              case list if list.forall(i => {
-                    playerHand.indices.contains(i) && (playerHand(i) match {
-                      case Tacocat | FeralCat => true
-                      case _                  => false
-                    })
-                  }) =>
-                playCards(list) *> stealFromPlayer(
-                  player.playerID,
-                  state.players,
-                  isRandom = true
-                )
-              case _ =>
-                webSocketHub.sendToPlayer(player.playerID)(
-                  "Invalid input, play 2 indices of cat cards (e.g.: 1,2)"
-                ) *> playOrPassPrompt(player)
-            }
-          } *> None.pure[IO]
-        case s"${c1},${c2},${c3}" if c1.toIntOption.isDefined && c2.toIntOption.isDefined && c3.toIntOption.isDefined =>
-          {
-            List(c1.toInt - 1, c2.toInt - 1, c3.toInt - 1) match {
-              case list if list.forall(i => {
-                    playerHand.indices.contains(i) && (playerHand(i) match {
-                      case Tacocat | FeralCat => true
-                      case _                  => false
-                    })
-                  }) =>
-                playCards(list) *> stealFromPlayer(
-                  player.playerID,
-                  state.players,
-                  isRandom = false
-                )
-              case _ =>
-                webSocketHub.sendToPlayer(player.playerID)(
-                  "Invalid input, play 3 indices of cat cards (e.g.: 1,2,3)"
-                ) *> playOrPassPrompt(player)
-            }
-          } *> None.pure[IO]
-        case x if x.toIntOption.isDefined =>
-          x.toInt - 1 match {
-            case i if playerHand.indices contains i =>
-              playerHand(i) match {
-                case ExplodingKitten | Defuse | Nope =>
-                  webSocketHub.sendToPlayer(player.playerID)(
-                    "You can't play this card right now"
-                  ) *> playOrPassPrompt(player)
-                case _ => Some(i).pure[IO]
-              }
-
-            case _ =>
-              webSocketHub.sendToPlayer(player.playerID)("Invalid index") *> playOrPassPrompt(
-                player
-              )
-          }
-
-        case _ =>
-          webSocketHub.sendToPlayer(player.playerID)("Invalid input") *> playOrPassPrompt(
-            player
-          )
-      }
-    } yield result
 
   /** Handles the card played, performing the necessary operations
     * @param player
@@ -927,10 +838,6 @@ case class Game(
 object Game {
 
   /** Creates a new game for a number of players and a websockethub
-    * @param nPlayers
-    *   number of players
-    * @param webSocketHub
-    *   websockethub required for communication with game and players
     * @return
     *   game created
     */

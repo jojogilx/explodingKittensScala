@@ -136,7 +136,7 @@ case object Bury extends Card {
     override val title: String = "I'll Take That"
   }
 
-  case object ImplodingKitten extends Card {
+  case class ImplodingKitten(faceUp: Boolean) extends Card {
     override val description: String = "When drawn face down, put back in the deck face up, without using a defuse. When drawn face up, explode immediately. This card cannot be defused"
     override val title: String = "Imploding Kitten"
   }
