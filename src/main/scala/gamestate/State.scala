@@ -1,6 +1,6 @@
 package gamestate
 
-import card.Deck
+import card.{Card, Deck}
 import cats.effect.IO
 import cats.effect.kernel.Deferred
 import players.Player
@@ -14,6 +14,8 @@ case class State(
     turnsLeft: Int,
     players: List[Player],
     playersHands: Map[PlayerID, Hand],
+    shownCards: Map[PlayerID, List[Card]],
     disconnections: Map[PlayerID, Deferred[IO, Boolean]],
-    orderRight: Boolean
+    orderRight: Boolean,
+
 )

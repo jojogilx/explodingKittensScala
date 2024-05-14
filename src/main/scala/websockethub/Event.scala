@@ -1,7 +1,7 @@
 package websockethub
 
 import card.Recipes._
-import card.{Card, Recipe}
+import card._
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax.EncoderOps
@@ -24,6 +24,10 @@ object Event {
   case class DrawCardEvent(card: Card, playerID: Option[PlayerID]) extends Event
   case class PlayCardEvent(card: Card) extends Event
   case class BuryEvent(card: Option[Card], min: Int, max: Int) extends Event
+  case class ShareCardsEvent(cards: List[Card]) extends Event
+  case class SeeCardsEvent(cards: List[Card]) extends Event
+
+  case class TargetPlayer(players: List[PlayerID]) extends Event
 
 
 

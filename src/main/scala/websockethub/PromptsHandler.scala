@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import players.Player
 import players.Player.{Hand, PlayerID}
-import websockethub.Event.HandEvent
+import websockethub.Event.{HandEvent, TargetPlayer}
 
 case class PromptsHandler(webSocketHub: WebSocketHub) {
 
@@ -152,9 +152,36 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
     } yield result
   }
 
-  def garbageCollectionPrompt(): IO[Unit] =
+  def garbageCollectionPrompt(playersWithCards: List[PlayerID]): IO[Unit] = IO.unit
+  /*  for {
+      _ <- playersWithCards.parTraverse { pID =>
+        webSocketHub.sendToPlayer2(pID)(Information("GarbageCollection"))
+      }
+      ans <- webSocketHub.getPendingInputs(playersWithCards)
+      res <- ans.fold(false.pure[IO]) { pID =>
+        playCardByID(pID, playerHandsWithNope(pID).indexOf(Nope)) *> webSocketHub.broadcast(
+          s"$pID played $Nope"
+        ) *> true.pure[IO]
+            }
+
+    } yield result
+*/
+
+  def choosePlayer(playerID: PlayerID,players: List[PlayerID]): IO[PlayerID] =
     for {
-      _ <- IO.println("TODO Garb collect")
-    } yield ()
+      _ <- webSocketHub.sendToPlayer2(playerID)(TargetPlayer(players))
+      string <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
+      valid <- string match {
+        case Some(value) =>
+          value match {
+            case x if (1 to players.length) contains x =>
+              players.filterNot(_ == playerID)(x - 1).pure[IO]
+            case _ =>
+              webSocketHub.sendToPlayer(playerID)("Invalid index") *> choosePlayer(playerID, players)
+          }
+        case None =>
+          webSocketHub.sendToPlayer(playerID)("Invalid input") *> choosePlayer(playerID, players)
+      }
+    } yield valid
 
 }
