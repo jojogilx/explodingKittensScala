@@ -16,15 +16,13 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       opt2: String,
       opt2Accept: String
   ): IO[Either[Unit, Unit]] =
-    IO.println("yo") *> (for {
-      _ <- IO.println("a")
+   (for {
       _ <- webSocketHub.sendToPlayer(playerID)(
         s"Do you want to $opt1 or $opt2? ($opt1Accept to $opt1, $opt2Accept to $opt2)"
       )
-      _ <- IO.println("b")
 
       inp <- webSocketHub.getGameInput(playerID).map(_.trim)
-      _   <- IO.println("c")
+
 
       answer <- inp match {
         case s"${ans}" if ans == opt1Accept => Left().pure[IO]
@@ -89,9 +87,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 
   def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] = {
     for {
-      _      <- IO.println("oi")
       _      <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand)) // switch to a PlayCardRequest
-      _      <- IO.println("oi2")
       answer <- webSocketHub.getGameInput(player.playerID)
       _      <- IO.println(s"answer is $answer")
       result <- answer match {

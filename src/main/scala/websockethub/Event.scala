@@ -23,6 +23,7 @@ object Event {
   case class PilesUpdate(draw_size: Int, last_discarded: Option[String]) extends Event
   case class DrawCardEvent(card: Card, playerID: Option[PlayerID]) extends Event
   case class PlayCardEvent(card: Card) extends Event
+  case class BuryEvent(card: Option[Card], min: Int, max: Int) extends Event
 
 
 
@@ -37,7 +38,8 @@ object Event {
   implicit val handEncoder: Encoder[HandEvent] = deriveEncoder[HandEvent]
   implicit val pilesEncoder: Encoder[PilesUpdate] = deriveEncoder[PilesUpdate]
   implicit val cardEncoder: Encoder[DrawCardEvent] = deriveEncoder[DrawCardEvent]
-  implicit val pcardEncoder: Encoder[PlayCardEvent] = deriveEncoder[PlayCardEvent]
+  implicit val playEncoder: Encoder[PlayCardEvent] = deriveEncoder[PlayCardEvent]
+  implicit val buryEncoder: Encoder[BuryEvent] = deriveEncoder[BuryEvent]
 
 
 
@@ -54,5 +56,6 @@ object Event {
     case piles: PilesUpdate => piles.asJson.mapObject(_.add("event", "piles".asJson))
     case card: DrawCardEvent => card.asJson.mapObject(_.add("event", "draw_card".asJson))
     case card: PlayCardEvent => card.asJson.mapObject(_.add("event", "play_card".asJson))
+    case event: BuryEvent => event.asJson.mapObject(_.add("event", "bury_card".asJson))
   }
 }

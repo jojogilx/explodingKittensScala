@@ -20,39 +20,38 @@ case class Game(
     stateManager: StateManager,
     prompter: PromptsHandler,
     recipe: Recipe,
-    started: Deferred[IO,Boolean]
+    started: Deferred[IO, Boolean]
 ) {
-  /** Creates a player with PlayerID and joins the game
-   * @param playerID
-   *   id of the player
-   */
-  def join(playerID: PlayerID): IO[Either[String, Unit]] =
 
+  /** Creates a player with PlayerID and joins the game
+    * @param playerID
+    *   id of the player
+    */
+  def join(playerID: PlayerID): IO[Either[String, Unit]] =
     for {
       state <- gameStateRef.get
       isAlreadyConnected = state.players.contains(Player(playerID, _))
-      cantJoin = state.started || (recipe.maxPlayers < state.players.length + 1)
+      cantJoin           = state.started || (recipe.maxPlayers < state.players.length + 1)
       res <-
         if (cantJoin) IO(Left("Can't Join"))
-        else if(isAlreadyConnected) {
+        else if (isAlreadyConnected) {
           for {
             _ <- reconnect(playerID)
             _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(state.players, recipe))
-          } yield Right ()
-        }
-        else {
+          } yield Right()
+        } else {
           for {
             deferred <- Deferred[IO, Boolean]
             newState <- gameStateRef.updateAndGet { gameState =>
               val disconnectedPlayers = gameState.disconnections + (playerID -> deferred)
-              val newPlayer = Player(playerID, gameState.players.length)
-              val updatedPlayers = newPlayer :: gameState.players
+              val newPlayer           = Player(playerID, gameState.players.length)
+              val updatedPlayers      = newPlayer :: gameState.players
               gameState.disconnections + (playerID -> Deferred)
               gameState.copy(players = updatedPlayers, disconnections = disconnectedPlayers)
             }
             _ <- webSocketHub.broadcast(Joined(playerID, newState.players))
             _ <- webSocketHub.sendToPlayer2(playerID)(RoomStateEvent(newState.players, recipe))
-          } yield Right ()
+          } yield Right()
         }
     } yield res
 
@@ -62,46 +61,40 @@ case class Game(
         IO.unit
       } else {
         for {
-          _ <- webSocketHub.broadcast(Started())
-          _ <- webSocketHub.broadcast(Information("Initializing"))
+          _        <- webSocketHub.broadcast(Started())
+          _        <- webSocketHub.broadcast(Information("Initializing"))
           nPlayers <- IO(gameState.players.length)
           drawDeck = initFromRecipe(recipe, nPlayers)
-          _ <- gameStateRef.update(_.copy(drawDeck = drawDeck))
-          _ <- handCards(nPlayers)
+          _      <- gameStateRef.update(_.copy(drawDeck = drawDeck))
+          _      <- handCards(nPlayers)
           player <- setRandomPlayerNext()
-          _ <- gameLoop(player).start
+          _      <- gameLoop(player).start
         } yield ()
       }
     }
   }
 
-
-/**
-   * Starts the game
-   * @return IO with either error string or unit
-   */
+  /** Starts the game
+    * @return
+    *   IO with either error string or unit
+    */
   def start(): IO[Either[String, Unit]] =
     for {
       state <- gameStateRef.get
-      _ <- IO.println("a")
-      res <- if(state.started)
-        Left("Game already started").pure[IO]
-      else IO.println("1") *> initialize() *> IO(Right())
+      res <-
+        if (state.started)
+          Left("Game already started").pure[IO]
+        else initialize() *> IO(Right())
     } yield res
-
-
-
-
 
   private def reconnect(playerID: PlayerID): IO[Unit] = {
     for {
       handOpt <- getPlayerHand(playerID)
-      _ <- handOpt.fold(IO.println("recon failed to update hand"))(hand => webSocketHub.sendToPlayer2(playerID)(HandEvent(hand)))
+      _ <- handOpt.fold(IO.println("recon failed to update hand"))(hand =>
+        webSocketHub.sendToPlayer2(playerID)(HandEvent(hand))
+      )
     } yield ()
   }
-
-
-
 
   private def getPlayerHand(playerID: PlayerID): IO[Option[Hand]] =
     gameStateRef.get.map { gameState =>
@@ -117,15 +110,17 @@ case class Game(
       for {
         gameState <- gameStateRef.get
         deferred  <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
-                 _ <- webSocketHub.disconnectPlayer(playerID)
+        _         <- webSocketHub.disconnectPlayer(playerID)
 
-        _         <- deferred.complete(true)
+        _ <- deferred.complete(true)
       } yield ()
-    } *> gameStateRef.modify(gameState => {
-      val newPlayers = gameState.players.filterNot(_.playerID == playerID)
+    } *> gameStateRef
+      .modify(gameState => {
+        val newPlayers = gameState.players.filterNot(_.playerID == playerID)
 
-      (gameState.copy(players = newPlayers), newPlayers)
-    }).flatMap( players => webSocketHub.broadcast(LeftGame(playerID, players)))
+        (gameState.copy(players = newPlayers), newPlayers)
+      })
+      .flatMap(players => webSocketHub.broadcast(LeftGame(playerID, players)))
 
   // -----manage player turns -------------------------------//
 
@@ -228,8 +223,6 @@ case class Game(
 
   // -------------game loop---------------------//
 
-
-
   /** The main game loop, starts a turn then updates the next player, stops when there's a winner at the end of a turn
     */
   private def gameLoop(player: Player): IO[Unit] = {
@@ -246,49 +239,59 @@ case class Game(
     _         <- IO.println(s"draw: ${gameState.drawDeck}")
   } yield ()
 
+  private def playerOnDisconnect(playerID: PlayerID): IO[Unit] =
+    for {
+      gameState <- gameStateRef.get
+      deferred  <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
+      _         <- deferred.get
+    } yield ()
 
   /** Handles a player turn
     */
   // meter a player turn com o id do player e quantas turns tem de fazer, then do it recursively
   private def playerTurn(currentPlayer: Player): IO[Unit] = IO
     .race( // On current player disconnected - break
-      for {
-        gameState <- gameStateRef.get
-        playerID = currentPlayer.playerID
-        deferred <- IO.fromOption(gameState.disconnections.get(playerID))(new RuntimeException("Deferred not found"))
-        _        <- deferred.get
-      } yield (),
+      playerOnDisconnect(currentPlayer.playerID),
       for {
         _ <- debugTurn()
         playerID = currentPlayer.playerID
-          _         <- webSocketHub.broadcast(NewTurn(playerID))
+        _         <- webSocketHub.broadcast(NewTurn(playerID))
         gameState <- gameStateRef.get
         _ <- webSocketHub.broadcast(PilesUpdate(gameState.drawDeck.length, gameState.discardDeck.topCard.map(_.title)))
 
-
-        // loop this until answer is no or skipped
+        // todo: loop this until answer is no or skipped
         hand <- getHand(playerID)
+        _    <- IO.println(s"$playerID hand= $hand")
 
-        playOrPass <- hand.fold(none[List[Int]].pure[IO])(hand =>
-          if (canPlayAnything(hand))
-            prompter.playCardsPrompt(currentPlayer, hand)
-          else
-            webSocketHub.sendToPlayer2(playerID)(Information("You don't have any cards you can play")) *> IO.none
-        )
-
-        playerSkipped <- playOrPass.fold(false.pure[IO])(list =>
-          list.foldLeft(false.pure[IO]) { (acc, i) =>
-            acc.combineK(handleCardPlayed(currentPlayer, playCard(i)))
-          }.flatTap(_ =>
-            for {
-              hand <- getHand(playerID)
-              _ <- webSocketHub.sendToPlayer2(playerID)(HandEvent(hand.get))
-          } yield () )
+        playOrPass <- hand
+          .fold(none[List[Int]].pure[IO])(hand =>
+            if (canPlayAnything(hand))
+              prompter.playCardsPrompt(currentPlayer, hand)
+            else
+              webSocketHub.sendToPlayer2(playerID)(Information("You don't have any cards you can play")) *> IO.none
+          )
+          .flatTap(a => IO.println(s"cards played = $a"))
+        _ <- IO.println(s"3")
+        playerSkipped <- playOrPass.fold(IO.unit)(list =>
+          list
+            .traverse_(i =>
+              for {
+                card <- playCard(i)
+                _    <- handleCardPlayed(currentPlayer, card)
+              } yield ()
+            )
+            .flatTap(_ =>
+              for {
+                handNew <- getHand(playerID)
+                _       <- IO.println(s"$playerID hand after play= $handNew")
+                _       <- webSocketHub.sendToPlayer2(playerID)(HandEvent(handNew.get))
+              } yield ()
+            )
         ) // If card played, does player skip draw?
         //
-
+        turnsLeft <-gameStateRef.get.map(_.turnsLeft)
         _ <-
-          if (!playerSkipped) {
+          if (turnsLeft > 0) {
             for {
               card <- drawCard(true)
               _    <- webSocketHub.sendToPlayer2(playerID)(DrawCardEvent(card, none))
@@ -302,7 +305,9 @@ case class Game(
                       for {
                         _ <- playCard(index)
                         _ <- webSocketHub.broadcast(Information(s"$Defuse used"))
-                        _ <- webSocketHub.sendToPlayer2(playerID)(Information(s"Choose where to bury the $ExplodingKitten"))
+                        _ <- webSocketHub.sendToPlayer2(playerID)(
+                          Information(s"Choose where to bury the $ExplodingKitten")
+                        )
                         _ <- buryCard(playerID, ExplodingKitten)
                       } yield ()
                     )
@@ -320,6 +325,7 @@ case class Game(
 
                 case _ => IO.unit
               }
+              _ <- IO.println(s"5")
             } yield ()
           } else webSocketHub.broadcast(Information(s"$playerID Skipped"))
 
@@ -327,13 +333,10 @@ case class Game(
     )
     .void
 
-
-
-/*  private def playCards(playerID: PlayerID): IO[Unit] =
+  /*  private def playCards(playerID: PlayerID): IO[Unit] =
     for {
 
     } yield ()*/
-
 
   private def getHand(playerID: PlayerID): IO[Option[Hand]] =
     gameStateRef.get.map { state =>
@@ -346,7 +349,6 @@ case class Game(
       case _                               => false
     })
 
-
   /** Handles the card played, performing the necessary operations
     * @param player
     *   current player
@@ -355,36 +357,39 @@ case class Game(
     * @return
     *   if the played card caused the player to skip drawing a card
     */
-  private def handleCardPlayed(player: Player, ioCard: IO[Card]): IO[Boolean] =
+  private def handleCardPlayed(player: Player, card: Card): IO[Unit] =
     for {
-      card <- ioCard
-      _    <- webSocketHub.broadcast(s"$player played $card")
-      res  <- askIfNopeCards2(player.playerID)
-      skipped <-
-        if (res) false.pure[IO] // Card was noped, card played with no effect
+      _   <- webSocketHub.broadcast(s"$player played $card")
+      res <- askIfNopeCards2(player.playerID)
+      _ <- card match {
+        case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 0))
+        case _: Skipper => gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
+
+        case _ => IO.unit
+      }
+      _ <-
+        if (res) IO.unit // Card was noped, card played with no effect
         else
           card match {
             case Shuffle =>
-              updateDrawDeck(_.shuffled) *> false.pure[IO]
-
-            case Skip => true.pure[IO]
+              updateDrawDeck(_.shuffled)
 
             case AlterTheFuture3X =>
               for {
-                cards3      <- gameStateRef.get.map(_.drawDeck.getFirstN(3)) //todo: change if the drawdeck has less than 3
-                order       <- alterTheFuture(cards3, player.playerID)
-                _           <- updateDrawDeck(_.alterTheFuture3X(order))
-              } yield false
+                cards3 <- gameStateRef.get.map(_.drawDeck.getFirstN(3)) // todo: change if the drawdeck has less than 3
+                order  <- alterTheFuture(cards3, player.playerID)
+                _      <- updateDrawDeck(_.alterTheFuture3X(order))
+              } yield ()
 
             case SwapTopAndBottom =>
-              updateDrawDeck(_.swapTopAndBottom) *> false.pure[IO]
+              updateDrawDeck(_.swapTopAndBottom)
 
             case Attack2X =>
               for {
                 np <- nextPlayer()
                 _  <- playerTurn(np)
                 _  <- previousPlayer()
-              } yield true
+              } yield ()
 
             case TargetedAttack2X =>
               for {
@@ -392,25 +397,25 @@ case class Game(
                 _          <- setNextPlayer(nextPlayer)
                 _          <- playerTurn(nextPlayer)
                 _          <- previousPlayer()
-              } yield true
+              } yield ()
 
             case CatomicBomb =>
-              updateDrawDeck(_.withExplodingKittensOnTop) *> true.pure[IO]
+              updateDrawDeck(_.withExplodingKittensOnTop)
 
             case Bury =>
               for {
                 card <- drawCard(true)
                 _    <- buryCard(player.playerID, card)
-              } yield true
+                _    <- gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
+              } yield ()
 
             case Reverse =>
-              reverseOrder() *> true.pure[IO]
+              reverseOrder()
 
-            case Tacocat | FeralCat => false.pure[IO]
-
-            case BarkingKitten     => ???
-            case DrawFromTheBottom => drawCard(false) *> true.pure[IO]
-            case GarbageCollection => prompter.garbageCollectionPrompt() *> false.pure[IO]
+            case BarkingKitten => ???
+            case DrawFromTheBottom =>
+              drawCard(false) *> gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
+            case GarbageCollection => prompter.garbageCollectionPrompt()
             case IllTakeThat       => ???
             case Mark              => ???
             case PersonalAttack3X  => ???
@@ -418,9 +423,10 @@ case class Game(
             case SeeTheFuture5X    => ???
             case ShareTheFuture3X  => ???
             case StreakingKitten   => ???
-            case SuperSkip         => ???
+
+            case _ => IO.unit
           }
-    } yield skipped
+    } yield ()
 
   // ___________ Deck Operations ______________________________//
 
@@ -432,7 +438,7 @@ case class Game(
   private def drawCard(top: Boolean): IO[Card] =
     for {
       card <- gameStateRef.modify { gameState =>
-        val (deck, card)  = if(top) gameState.drawDeck.draw else gameState.drawDeck.drawFromBottom
+        val (deck, card)  = if (top) gameState.drawDeck.draw else gameState.drawDeck.drawFromBottom
         val currentPlayer = gameState.players(gameState.currentPlayerIndex).playerID
         val playerHand    = gameState.playersHands(currentPlayer) :+ card
 
@@ -454,24 +460,24 @@ case class Game(
     */
   private def handCards(nPlayers: Int): IO[Unit] = {
     webSocketHub.broadcast(Information("Handing cards...")) *>
-      gameStateRef.modify { gameState =>
-        val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, recipe.defusesOnStart * nPlayers)
-        val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
-          case ((cards, map), p) =>
-            val (hand, newDrawDeck) = cards.splitAt(recipe.cardsOnStart(nPlayers))
-            val newHand             = hand :+ Defuse
+      gameStateRef
+        .modify { gameState =>
+          val (deckWOBombs, bombs) = removeDefuseAndBombs(gameState.drawDeck, recipe.defusesOnStart * nPlayers)
+          val (deck, map) = gameState.players.foldLeft((deckWOBombs, Map.empty[PlayerID, Hand])) {
+            case ((cards, map), p) =>
+              val (hand, newDrawDeck) = cards.splitAt(recipe.cardsOnStart(nPlayers))
+              val newHand             = hand :+ Defuse
 
-            (newDrawDeck, map + (p.playerID -> newHand))
+              (newDrawDeck, map + (p.playerID -> newHand))
+          }
+
+          val newDrawDeck = Deck(deck ++ bombs).shuffled
+          (gameState.copy(drawDeck = newDrawDeck, playersHands = map), map)
+
         }
-
-        val newDrawDeck = Deck(deck ++ bombs).shuffled
-        (gameState.copy(drawDeck = newDrawDeck, playersHands = map), map)
-
-      }.flatMap(map => map.toList.traverse_{case (p,h) => webSocketHub.sendToPlayer2(p)(HandEvent(h))})
+        .flatMap(map => map.toList.traverse_ { case (p, h) => webSocketHub.sendToPlayer2(p)(HandEvent(h)) })
 
   }
-
-
 
   /** Updates the draw deck according to a given function
     * @param function
@@ -505,22 +511,23 @@ case class Game(
     *   Card played
     */
   private def playCard(index: Int): IO[Card] =
-    gameStateRef.modify { gameState =>
-      val currentPlayer = gameState.players(gameState.currentPlayerIndex)
-      val hands         = gameState.playersHands
-      val card          = hands(currentPlayer.playerID)(index)
-      val (left, right) = hands(currentPlayer.playerID).splitAt(index)
-      val newCards      = left ::: right.drop(1)
-
-      (
-        gameState.copy(
-          discardDeck = gameState.discardDeck.prepend(card),
-          playersHands = hands + (currentPlayer.playerID -> newCards)
-        ),
-        card
-      )
-    }.flatTap(card => webSocketHub.broadcast(PlayCardEvent(card)))
-
+    gameStateRef
+      .modify { gameState =>
+        val currentPlayer = gameState.players(gameState.currentPlayerIndex)
+        val hands         = gameState.playersHands
+        val card          = hands(currentPlayer.playerID)(index)
+        val (left, right) = hands(currentPlayer.playerID).splitAt(index)
+        val newCards      = left ::: right.drop(1)
+        println(s"CARDDD ${newCards}")
+        (
+          gameState.copy(
+            discardDeck = gameState.discardDeck.prepend(card),
+            playersHands = hands + (currentPlayer.playerID -> newCards)
+          ),
+          card
+        )
+      }
+      .flatTap(card => webSocketHub.broadcast(PlayCardEvent(card)))
 
   /** Plays the card with the given player at given index, removing it from the player's hand, discarding it and
     * returning the card
@@ -585,9 +592,9 @@ case class Game(
     */
   private def buryCard(playerID: PlayerID, card: Card): IO[Unit] = {
     for {
-      deckLength <- gameStateRef.get.map(_.drawDeck.length)
+      deckLength <- gameStateRef.get.map(_.drawDeck.length + 1)
       _          <- webSocketHub.sendToPlayer(playerID)("Where do you want to bury this card?")
-      _          <- webSocketHub.sendToPlayer(playerID)(s"Insert a number between 1 and $deckLength >> ")
+      _          <- webSocketHub.sendToPlayer(playerID)(s"Insert a number between 1 and ${deckLength} >> ")
       string     <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
       _ <- string match {
         case Some(index) if (0 until deckLength).contains(index - 1) =>
@@ -848,7 +855,7 @@ object Game {
       stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
       prompter = PromptsHandler(webSocketHub)
-      deferred <- Deferred[IO,Boolean]
+      deferred <- Deferred[IO, Boolean]
     } yield new Game(roomName, webSocketHub, gameStateRef, stateManager, prompter, recipe, started = deferred)
   }
 }

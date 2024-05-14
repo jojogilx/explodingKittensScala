@@ -51,18 +51,18 @@ case object SwapTopAndBottom extends Card {
   override val title: String       = "Swap Top And Bottom"
 }
 
-case object Attack2X extends Card {
+case object Attack2X extends Card with Skipper {
   override val description: String = "End your turn without drawing a card. Force the next player to take two turns"
   override val title: String       = "Attack (2X)"
 }
 
-case object TargetedAttack2X extends Card {
+case object TargetedAttack2X extends Card with Skipper {
   override val description: String = "End your turn without drawing a card. " +
     "Force one player to take two turns. Game continues from that player"
   override val title: String     = "Targeted Attack (2X)"
 }
 
-case object CatomicBomb extends Card {
+case object CatomicBomb extends Card with Skipper {
   override val description: String = "Remove the exploding kittens from the deck. " +
     "Put all the kittens top of the drawn pile. Your turn ends after playing this card"
   override val title: String     = "Catomic Bomb"
@@ -84,7 +84,7 @@ case object Bury extends Card {
     override val title: String = "Feral Cat"
   }
 
-  case object Reverse extends Card {
+  case object Reverse extends Card with Skipper {
     override val description: String = "Reverse the order of play and end your turn without drawing a card"
     override val title: String = "Reverse"
   }
