@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="implemented some cards. needs testing">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="added all events">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/StateManager.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/players/Player.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/players/Player.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -145,14 +141,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00042" summary="Rooms hosting their game">
-      <option name="closed" value="true" />
-      <created>1710770636280</created>
-      <option name="number" value="00042" />
-      <option name="presentableId" value="LOCAL-00042" />
-      <option name="project" value="LOCAL" />
-      <updated>1710770636280</updated>
     </task>
     <task id="LOCAL-00043" summary="Lobby print rooms">
       <option name="closed" value="true" />
@@ -538,7 +526,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715700593743</updated>
     </task>
-    <option name="localTasksCounter" value="91" />
+    <task id="LOCAL-00091" summary="added all events">
+      <option name="closed" value="true" />
+      <created>1715779035364</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1715779035364</updated>
+    </task>
+    <option name="localTasksCounter" value="92" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -554,7 +550,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="corrected reverse card" />
     <MESSAGE value="added broadcast of deck size and last card played" />
     <MESSAGE value="added card objects for all cards in recipes. added presentation" />
     <MESSAGE value="added more recipes" />
@@ -579,6 +574,7 @@
     <MESSAGE value="play card working, needs debug" />
     <MESSAGE value="bury card bug fix" />
     <MESSAGE value="implemented some cards. needs testing" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented some cards. needs testing" />
+    <MESSAGE value="added all events" />
+    <option name="LAST_COMMIT_MESSAGE" value="added all events" />
   </component>
 </project>
