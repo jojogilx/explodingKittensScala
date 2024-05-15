@@ -10,56 +10,86 @@ import players.Player._
 sealed trait Event
 object Event {
 
-
-  case class Joined(player: String, player_list: List[Player]) extends Event
-  case class LeftGame(player: String, player_list: List[Player]) extends Event
-  case class Started()                                                        extends Event
-  case class Information(information: String)                                 extends Event
-  case class Error(error: String)                                 extends Event
+  // game logistics related
+  case class Joined(player: String, player_list: List[Player])         extends Event
+  case class LeftGame(player: String, player_list: List[Player])       extends Event
+  case class Started()                                                 extends Event
   case class RoomStateEvent(player_list: List[Player], recipe: Recipe) extends Event
+
+  // general
+  case class Information(information: String) extends Event
+  case class Error(error: String)             extends Event
+
+  // turns, win & lose
   case class NewTurn(player: String) extends Event
-  case class Winner(player: String) extends Event
-  case class HandEvent(player_hand: Hand) extends Event
+  case class Winner(player: String)  extends Event
+  case class Died(player: String)    extends Event
+
+  // State Updates
+  case class CardsInHand(player_hand: Hand)                              extends Event
   case class PilesUpdate(draw_size: Int, last_discarded: Option[String]) extends Event
-  case class DrawCardEvent(card: Card, playerID: Option[PlayerID]) extends Event
-  case class PlayCardEvent(card: Card) extends Event
-  case class BuryEvent(card: Option[Card], min: Int, max: Int) extends Event
-  case class ShareCardsEvent(cards: List[Card]) extends Event
-  case class SeeCardsEvent(cards: List[Card]) extends Event
+  case class PlayersHands(hands: List[(PlayerID, HandCount)])            extends Event
 
-  case class TargetPlayer(players: List[PlayerID]) extends Event
+  // card operations
+  case class DrawCard(card: Card, playerID: Option[PlayerID]) extends Event
+  case class PlayCard(card: Card, playerID: Option[PlayerID]) extends Event
 
+  // card specific
+  case class TargetPlayer(players: List[PlayerID])            extends Event
+  case class BuryCard(card: Option[Card], min: Int, max: Int) extends Event
+  case class ChooseCard(cards: List[Card])                    extends Event
+  case class GarbageCollect()                                 extends Event
+  case class AlterCardOrder(next_cards: List[Card])           extends Event
+  case class ShareCards(cards: List[Card])               extends Event
+  case class SeeCards(cards: List[Card])                 extends Event
 
-
+  // encoders
   implicit val joinedEncoder: Encoder[Joined]            = deriveEncoder[Joined]
   implicit val leftGameEncoder: Encoder[LeftGame]        = deriveEncoder[LeftGame]
   implicit val startedEncoder: Encoder[Started]          = deriveEncoder[Started]
-  implicit val informationEncoder: Encoder[Information]  = deriveEncoder[Information]
-  implicit val errorEncoder: Encoder[Error]  = deriveEncoder[Error]
-  implicit val newturnEncoder: Encoder[NewTurn]  = deriveEncoder[NewTurn]
-  implicit val winnerEncoder: Encoder[Winner]  = deriveEncoder[Winner]
   implicit val roomStateEncoder: Encoder[RoomStateEvent] = deriveEncoder[RoomStateEvent]
-  implicit val handEncoder: Encoder[HandEvent] = deriveEncoder[HandEvent]
-  implicit val pilesEncoder: Encoder[PilesUpdate] = deriveEncoder[PilesUpdate]
-  implicit val cardEncoder: Encoder[DrawCardEvent] = deriveEncoder[DrawCardEvent]
-  implicit val playEncoder: Encoder[PlayCardEvent] = deriveEncoder[PlayCardEvent]
-  implicit val buryEncoder: Encoder[BuryEvent] = deriveEncoder[BuryEvent]
 
+  implicit val informationEncoder: Encoder[Information] = deriveEncoder[Information]
+  implicit val errorEncoder: Encoder[Error]             = deriveEncoder[Error]
 
+  implicit val newturnEncoder: Encoder[NewTurn] = deriveEncoder[NewTurn]
+  implicit val winnerEncoder: Encoder[Winner]   = deriveEncoder[Winner]
+  implicit val diedEncoder: Encoder[Died]       = deriveEncoder[Died]
+
+  implicit val handEncoder: Encoder[CardsInHand]          = deriveEncoder[CardsInHand]
+  implicit val pilesEncoder: Encoder[PilesUpdate]         = deriveEncoder[PilesUpdate]
+  implicit val playersHandsEncoder: Encoder[PlayersHands] = deriveEncoder[PlayersHands]
+
+  implicit val drawEncoder: Encoder[DrawCard] = deriveEncoder[DrawCard]
+  implicit val playEncoder: Encoder[PlayCard] = deriveEncoder[PlayCard]
+
+  implicit val targetEncoder: Encoder[TargetPlayer] = deriveEncoder[TargetPlayer]
+  implicit val buryEncoder: Encoder[BuryCard]       = deriveEncoder[BuryCard]
+  implicit val chooseCardEncoder: Encoder[ChooseCard]       = deriveEncoder[ChooseCard]
+  implicit val garbageCollectEncoder: Encoder[GarbageCollect]       = deriveEncoder[GarbageCollect]
+  implicit val alterOrderEncoder: Encoder[AlterCardOrder]       = deriveEncoder[AlterCardOrder]
+  implicit val seeCardsEncoder: Encoder[SeeCards]       = deriveEncoder[SeeCards]
 
   implicit val eventEncoder: Encoder[Event] = Encoder.instance {
     case joined: Joined            => joined.asJson.mapObject(_.add("event", "joined".asJson))
     case left: LeftGame            => left.asJson.mapObject(_.add("event", "left".asJson))
     case started: Started          => started.asJson.mapObject(_.add("event", "started".asJson))
-    case information: Information  => information.asJson.mapObject(_.add("event", "information".asJson))
-    case information: Error  => information.asJson.mapObject(_.add("event", "error".asJson))
-    case information: NewTurn  => information.asJson.mapObject(_.add("event", "new_turn".asJson))
-    case information: Winner  => information.asJson.mapObject(_.add("event", "winner".asJson))
     case roomState: RoomStateEvent => roomState.asJson.mapObject(_.add("event", "room_state".asJson))
-    case hand: HandEvent => hand.asJson.mapObject(_.add("event", "hand".asJson))
-    case piles: PilesUpdate => piles.asJson.mapObject(_.add("event", "piles".asJson))
-    case card: DrawCardEvent => card.asJson.mapObject(_.add("event", "draw_card".asJson))
-    case card: PlayCardEvent => card.asJson.mapObject(_.add("event", "play_card".asJson))
-    case event: BuryEvent => event.asJson.mapObject(_.add("event", "bury_card".asJson))
+    case information: Information  => information.asJson.mapObject(_.add("event", "information".asJson))
+    case error: Error        => error.asJson.mapObject(_.add("event", "error".asJson))
+    case newTurn: NewTurn      =>   newTurn.asJson.mapObject(_.add("event", "new_turn".asJson))
+    case winner: Winner       => winner.asJson.mapObject(_.add("event", "winner".asJson))
+    case died: Died       => died.asJson.mapObject(_.add("event", "died".asJson))
+    case hand: CardsInHand         => hand.asJson.mapObject(_.add("event", "hand".asJson))
+    case piles: PilesUpdate        => piles.asJson.mapObject(_.add("event", "piles".asJson))
+    case playersHands: PlayersHands        => playersHands.asJson.mapObject(_.add("event", "players_hands".asJson))
+    case draw: DrawCard            => draw.asJson.mapObject(_.add("event", "draw_card".asJson))
+    case play: PlayCard            => play.asJson.mapObject(_.add("event", "play_card".asJson))
+    case target: TargetPlayer            => target.asJson.mapObject(_.add("event", "target_player".asJson))
+    case bury: BuryCard           => bury.asJson.mapObject(_.add("event", "bury_card".asJson))
+    case choose: ChooseCard           => choose.asJson.mapObject(_.add("event", "choose_card".asJson))
+    case garbage: GarbageCollect           => garbage.asJson.mapObject(_.add("event", "garbage_collection".asJson))
+    case alter: AlterCardOrder           => alter.asJson.mapObject(_.add("event", "alter_the_future".asJson))
+    case see: SeeCards           => see.asJson.mapObject(_.add("event", "see_the_future".asJson))
   }
 }

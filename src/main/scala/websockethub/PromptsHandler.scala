@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import players.Player
 import players.Player.{Hand, PlayerID}
-import websockethub.Event.{HandEvent, TargetPlayer}
+import websockethub.Event.{CardsInHand, TargetPlayer}
 
 case class PromptsHandler(webSocketHub: WebSocketHub) {
 
@@ -87,7 +87,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 
   def playCardsPrompt(player: Player, playerHand: Hand): IO[Option[List[Int]]] = {
     for {
-      _      <- webSocketHub.sendToPlayer2(player.playerID)(HandEvent(playerHand)) // switch to a PlayCardRequest
+      _      <- webSocketHub.sendToPlayer2(player.playerID)(CardsInHand(playerHand)) // switch to a PlayCardRequest
       answer <- webSocketHub.getGameInput(player.playerID)
       _      <- IO.println(s"answer is $answer")
       result <- answer match {
@@ -148,7 +148,6 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
             playerHand
           )
       }
-      _ <- IO.println("end")
     } yield result
   }
 

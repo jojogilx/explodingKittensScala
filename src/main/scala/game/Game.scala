@@ -18,7 +18,7 @@ case class Game(
     roomName: String,
     webSocketHub: WebSocketHub,
     gameStateRef: Ref[IO, State],
-    stateManager: StateManager,
+   // stateManager: StateManager,
     prompter: PromptsHandler,
     recipe: Recipe,
     started: Deferred[IO, Boolean]
@@ -92,7 +92,7 @@ case class Game(
     for {
       handOpt <- getPlayerHand(playerID)
       _ <- handOpt.fold(IO.println("recon failed to update hand"))(hand =>
-        webSocketHub.sendToPlayer2(playerID)(HandEvent(hand))
+        webSocketHub.sendToPlayer2(playerID)(CardsInHand(hand))
       )
     } yield ()
   }
@@ -301,7 +301,7 @@ case class Game(
           list
             .traverse_(i =>
               for {
-                card <- playCard(i)
+                card <- playCard(i, playerID)
                 _    <- handleCardPlayed(currentPlayer, card)
               } yield ()
             )
@@ -309,7 +309,7 @@ case class Game(
               for {
                 handNew <- getHand(playerID)
                 _       <- IO.println(s"$playerID hand after play= $handNew")
-                _       <- webSocketHub.sendToPlayer2(playerID)(HandEvent(handNew.get))
+                _       <- webSocketHub.sendToPlayer2(playerID)(CardsInHand(handNew.get))
               } yield ()
             )
         ) // If card played, does player skip draw?
@@ -319,7 +319,7 @@ case class Game(
           if (turnsLeft > 0) {
             for {
               card <- drawCard(true)
-              _    <- webSocketHub.sendToPlayer2(playerID)(DrawCardEvent(card, none))
+              _    <- webSocketHub.sendToPlayer2(playerID)(DrawCard(card, none))
 
               _ <- card match { // TODO: change for streaking kitten
                 case ExplodingKitten =>
@@ -328,7 +328,7 @@ case class Game(
                     defuseOpt <- tryFindDefuseIndex()
                     _ <- defuseOpt.fold(killCurrentPlayer)(index =>
                       for {
-                        _ <- playCard(index)
+                        _ <- playCard(index, playerID)
                         _ <- webSocketHub.broadcast(Information(s"$Defuse used"))
                         _ <- webSocketHub.sendToPlayer2(playerID)(
                           Information(s"Choose where to bury the $ExplodingKitten")
@@ -438,7 +438,7 @@ case class Game(
               reverseOrder()
 
             case BarkingKitten => ???
-            case DrawFromTheBottom =>
+            case DrawFromTheBottom => // todo: missing KILL part
               drawCard(false) *> gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
             case GarbageCollection =>
             for {
@@ -467,7 +467,7 @@ case class Game(
                 _      <- updateDrawDeck(_.alterTheFuture3X(order))
                 newCards <- gameStateRef.get.map(_.drawDeck.getFirstN(3))
                 nextPlayer <- getNextPlayer.map(_.playerID)
-                _ <- webSocketHub.sendToPlayer2(nextPlayer)(ShareCardsEvent(newCards))
+                _ <- webSocketHub.sendToPlayer2(nextPlayer)(ShareCards(newCards))
               } yield ()
 
             case _ => IO.unit
@@ -530,7 +530,7 @@ case class Game(
           (gameState.copy(drawDeck = newDrawDeck, playersHands = map), map)
 
         }
-        .flatMap(map => map.toList.traverse_ { case (p, h) => webSocketHub.sendToPlayer2(p)(HandEvent(h)) })
+        .flatMap(map => map.toList.traverse_ { case (p, h) => webSocketHub.sendToPlayer2(p)(CardsInHand(h)) })
 
   }
 
@@ -565,23 +565,23 @@ case class Game(
     * @return
     *   Card played
     */
-  private def playCard(index: Int): IO[Card] =
+
+  private def playCard(index: Int, playerID: PlayerID): IO[Card] =
     gameStateRef
       .modify { gameState =>
-        val currentPlayer = gameState.players(gameState.currentPlayerIndex)
         val hands         = gameState.playersHands
-        val card          = hands(currentPlayer.playerID)(index)
-        val (left, right) = hands(currentPlayer.playerID).splitAt(index)
+        val card          = hands(playerID)(index)
+        val (left, right) = hands(playerID).splitAt(index)
         val newCards      = left ::: right.drop(1)
         (
           gameState.copy(
             discardDeck = gameState.discardDeck.prepend(card),
-            playersHands = hands + (currentPlayer.playerID -> newCards)
+            playersHands = hands + (playerID -> newCards)
           ),
           card
         )
       }
-      .flatTap(card => webSocketHub.broadcast(PlayCardEvent(card)))
+      .flatTap(card => webSocketHub.broadcast(PlayCard(card, playerID.some)))
 
   /** Plays the card with the given player at given index, removing it from the player's hand, discarding it and
     * returning the card
@@ -647,7 +647,7 @@ case class Game(
   private def buryCard(playerID: PlayerID, card: Card): IO[Unit] = {
     for {
       deckLength <- gameStateRef.get.map(_.drawDeck.length + 1)
-      _ <- webSocketHub.sendToPlayer2(playerID)(BuryEvent(card.some, 1, deckLength))
+      _ <- webSocketHub.sendToPlayer2(playerID)(BuryCard(card.some, 1, deckLength))
       string     <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
       _ <- string match {
         case Some(index) if (0 until deckLength).contains(index - 1) =>
@@ -905,10 +905,10 @@ object Game {
 
     for {
       webSocketHub <- WebSocketHub.of
-      stateManager <- StateManager.of(initialState, webSocketHub)
+//      stateManager <- StateManager.of(initialState, webSocketHub)
       gameStateRef <- Ref.of[IO, State](initialState)
       prompter = PromptsHandler(webSocketHub)
       deferred <- Deferred[IO, Boolean]
-    } yield new Game(roomName, webSocketHub, gameStateRef, stateManager, prompter, recipe, started = deferred)
+    } yield new Game(roomName, webSocketHub, gameStateRef, /*stateManager,*/ prompter, recipe, started = deferred)
   }
 }
