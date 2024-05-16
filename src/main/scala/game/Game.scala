@@ -366,7 +366,7 @@ case class Game(
 
 
   private def playOneCard(playerID: PlayerID): IO[Boolean] = {
-
+false.pure[IO]
   }
 
 
