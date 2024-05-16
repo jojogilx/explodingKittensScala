@@ -13,9 +13,9 @@ case class State(
     currentPlayerIndex: Int,
     turnsLeft: Int,
     players: List[Player],
-    playersHands: Map[PlayerID, Hand],
-    shownCards: Map[PlayerID,  HandCount],
+    playersHands: Map[PlayerID, (Hand,HandCount)],
     disconnections: Map[PlayerID, Deferred[IO, Boolean]],
     orderRight: Boolean,
+    skippedPlayingCard: Boolean
 
 )

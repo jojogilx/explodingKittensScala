@@ -690,3 +690,8 @@ object Recipes {
   def getRecipe(n: String): Option[Recipe] = recipesList.find(_.name == n)
 
 }
+
+
+
+
+

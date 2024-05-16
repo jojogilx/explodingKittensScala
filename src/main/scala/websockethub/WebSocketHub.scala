@@ -61,7 +61,7 @@ object WebSocketHub {
 
     override def sendToPlayer2(playerID: PlayerID)(event: Event): IO[Unit] = {
 
-      stateRef.get.flatMap { messageMap =>
+      IO.println(s"PLAYER $playerID -> event: ${event.getClass}: $event") *> stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
           case Some((queue, _)) =>
             queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
@@ -85,7 +85,7 @@ object WebSocketHub {
     }
 
     override def broadcast(event: Event): IO[Unit] = {
-      stateRef.get.flatMap(map =>
+      IO.println(s"event: ${event.getClass}: $event") *> stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
           queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
         }.void
