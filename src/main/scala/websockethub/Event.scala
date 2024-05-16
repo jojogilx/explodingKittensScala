@@ -27,7 +27,7 @@ object Event {
 
   // State Updates
   case class CardsInHand(player_hand: Hand)                              extends Event
-  case class PilesUpdate(draw_size: Int, last_discarded: Option[String]) extends Event
+  case class PilesUpdate(draw_size: Int) extends Event
   case class PlayersHands(hands: List[(PlayerID, HandCount)])            extends Event
 
   // card operations
@@ -40,7 +40,6 @@ object Event {
   case class ChooseCard(cards: List[Card])                    extends Event
   case class GarbageCollect()                                 extends Event
   case class AlterCardOrder(next_cards: List[Card])           extends Event
-  case class ShareCards(cards: List[Card])               extends Event
   case class SeeCards(cards: List[Card])                 extends Event
 
   // encoders
@@ -68,7 +67,6 @@ object Event {
   implicit val chooseCardEncoder: Encoder[ChooseCard]       = deriveEncoder[ChooseCard]
   implicit val garbageCollectEncoder: Encoder[GarbageCollect]       = deriveEncoder[GarbageCollect]
   implicit val alterOrderEncoder: Encoder[AlterCardOrder]       = deriveEncoder[AlterCardOrder]
-  implicit val shareEncoder: Encoder[ShareCards]       = deriveEncoder[ShareCards]
   implicit val seeCardsEncoder: Encoder[SeeCards]       = deriveEncoder[SeeCards]
 
   implicit val eventEncoder: Encoder[Event] = Encoder.instance {
@@ -91,7 +89,6 @@ object Event {
     case choose: ChooseCard           => choose.asJson.mapObject(_.add("event", "choose_card".asJson))
     case garbage: GarbageCollect           => garbage.asJson.mapObject(_.add("event", "garbage_collection".asJson))
     case alter: AlterCardOrder           => alter.asJson.mapObject(_.add("event", "alter_the_future".asJson))
-    case share: ShareCards           => share.asJson.mapObject(_.add("event", "share_the_future".asJson))
     case see: SeeCards           => see.asJson.mapObject(_.add("event", "see_the_future".asJson))
   }
 }
