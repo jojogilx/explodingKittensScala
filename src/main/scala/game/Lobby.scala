@@ -76,7 +76,7 @@ object Lobby extends IOApp {
                 )
               } yield w
 
-            // websocat ws://127.0.0.1:8080/join/room1/player1
+            // websocat ws://127.0.0.1:8080/join/room/player1
             case GET -> Root / "join" / roomName / playerID =>
               for {
                 q <- Queue.unbounded[IO, WebSocketFrame]

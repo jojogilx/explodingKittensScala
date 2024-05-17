@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="events">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="playing multiple cards. TODO fix skip bugged">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Card.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Card.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -145,14 +143,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00046" summary="fixed websocket timing out, 3rd milestone completed">
-      <option name="closed" value="true" />
-      <created>1710838336806</created>
-      <option name="number" value="00046" />
-      <option name="presentableId" value="LOCAL-00046" />
-      <option name="project" value="LOCAL" />
-      <updated>1710838336806</updated>
     </task>
     <task id="LOCAL-00047" summary="nope card implemented">
       <option name="closed" value="true" />
@@ -538,7 +528,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715865746513</updated>
     </task>
-    <option name="localTasksCounter" value="95" />
+    <task id="LOCAL-00095" summary="playing multiple cards. TODO fix skip bugged">
+      <option name="closed" value="true" />
+      <created>1715873365753</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1715873365753</updated>
+    </task>
+    <option name="localTasksCounter" value="96" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -554,7 +552,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="added more recipes" />
     <MESSAGE value="all recipes added" />
     <MESSAGE value="removed previous nope sauce map" />
     <MESSAGE value="added ??? cards" />
@@ -579,6 +576,7 @@
     <MESSAGE value="added all events" />
     <MESSAGE value="share the future event" />
     <MESSAGE value="events" />
-    <option name="LAST_COMMIT_MESSAGE" value="events" />
+    <MESSAGE value="playing multiple cards. TODO fix skip bugged" />
+    <option name="LAST_COMMIT_MESSAGE" value="playing multiple cards. TODO fix skip bugged" />
   </component>
 </project>

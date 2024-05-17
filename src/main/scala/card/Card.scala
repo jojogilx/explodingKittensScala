@@ -36,7 +36,7 @@ case object Nope extends Card with Now {
   override val title: String       = "Nope"
 }
 
-case object Skip extends Card {
+case object Skip extends Card with Skipper {
   override val description: String = "End turn without drawing a card"
   override val title: String       = "Skip"
 }

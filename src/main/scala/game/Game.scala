@@ -254,7 +254,7 @@ case class Game(
     playerTurn(player) *> getWinner.flatMap({
       case Some(player) =>
         webSocketHub.broadcast(Winner(player.playerID)) *> webSocketHub.endGame() *> IO.println(s"ended")
-      case None => nextPlayer().flatMap(np => gameLoop(np))
+      case None => nextPlayer().flatMap(np => gameLoop(np)) // todo: set currentPlayer in playerturn
     })
   }
 
@@ -407,6 +407,8 @@ case class Game(
 
         case _ => IO.unit
       }
+      turn <- gameStateRef.get.map(_.turnsLeft)
+      _ <- IO.println(s"TURNS ${turn}")
       _ <-
         if (res) IO.unit // Card was noped, card played with no effect
         else
