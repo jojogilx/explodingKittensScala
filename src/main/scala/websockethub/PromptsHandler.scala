@@ -1,10 +1,10 @@
 package websockethub
 
-import card.{CatCard, Defuse, ExplodingKitten, Nope}
+import card.{Card, CatCard, Defuse, ExplodingKitten, Nope}
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
 import players.Player.{Hand, PlayerID}
-import websockethub.Event.{CardsInHand, Information, TargetPlayer}
+import websockethub.Event._
 
 case class PromptsHandler(webSocketHub: WebSocketHub) {
 
@@ -161,4 +161,26 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       }
     } yield valid
 
+
+  /** Prompt for the alter the future card, players are asked to order the next 3 cards
+   * @param cards3
+   *   the next 3 cards
+   * @param playerID
+   *   the current player's id
+   * @return
+   *   the new order of the cards, chosen by the player
+   */
+  def alterTheFuture(cards3: List[Card], playerID: PlayerID): IO[String] = {
+    for {
+      _ <- webSocketHub.sendToPlayer2(playerID)(AlterCardOrder(cards3))
+      string <- webSocketHub.getGameInput(playerID)
+      valid <- string.toSet match {
+        case set if set == Set('1', '2', '3') => string.pure[IO]
+        case s =>
+          webSocketHub.sendToPlayer(playerID)(
+            s"Invalid input $s, please specify order using only numbers"
+          ) *> alterTheFuture(cards3, playerID)
+      }
+    } yield valid
+  }
 }

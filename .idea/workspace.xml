@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="skip fixed">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="implemented barking and illtakethat cards. simplified code">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -142,14 +142,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00048" summary="cat cards implemented&#10;fixed bug where players were being dealt the same hand">
-      <option name="closed" value="true" />
-      <created>1710856143968</created>
-      <option name="number" value="00048" />
-      <option name="presentableId" value="LOCAL-00048" />
-      <option name="project" value="LOCAL" />
-      <updated>1710856143968</updated>
     </task>
     <task id="LOCAL-00049" summary="deck test rollback">
       <option name="closed" value="true" />
@@ -535,7 +527,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715949638559</updated>
     </task>
-    <option name="localTasksCounter" value="97" />
+    <task id="LOCAL-00097" summary="implemented barking and illtakethat cards. simplified code">
+      <option name="closed" value="true" />
+      <created>1715954289635</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1715954289635</updated>
+    </task>
+    <option name="localTasksCounter" value="98" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -551,7 +551,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="removed previous nope sauce map" />
     <MESSAGE value="added ??? cards" />
     <MESSAGE value="changed player turn to include player instead of fetching it" />
     <MESSAGE value="prompt for recipe choice" />
@@ -576,6 +575,18 @@
     <MESSAGE value="events" />
     <MESSAGE value="playing multiple cards. TODO fix skip bugged" />
     <MESSAGE value="skip fixed" />
-    <option name="LAST_COMMIT_MESSAGE" value="skip fixed" />
+    <MESSAGE value="implemented barking and illtakethat cards. simplified code" />
+    <option name="LAST_COMMIT_MESSAGE" value="implemented barking and illtakethat cards. simplified code" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="scala-line">
+          <url>file://$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala</url>
+          <line>146</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
