@@ -36,10 +36,8 @@ case class Game(
         else initialize() *> IO(Right())
     } yield res
 
-
-  /**
-   * initializes the game: initializes the deck, hands cards and selects a starting player
-   */
+  /** initializes the game: initializes the deck, hands cards and selects a starting player
+    */
   private def initialize(): IO[Unit] = {
     gameStateRef.get.flatMap { gameState =>
       for {
@@ -56,24 +54,25 @@ case class Game(
   }
 
   /** Resets the game state
-   */
+    */
   def reset(): IO[Unit] =
-    gameStateRef.update(_ => State(
-      started = false,
-      Deck(List.empty),
-      Deck(List.empty),
-      -1,
-      1,
-      List.empty,
-      Map.empty,
-      Map.empty,
-      List.empty,
-      orderRight = true,
-      passed = false,
-      skipped = false,
-      none,
-    ))
-
+    gameStateRef.update(_ =>
+      State(
+        started = false,
+        Deck(List.empty),
+        Deck(List.empty),
+        -1,
+        1,
+        List.empty,
+        Map.empty,
+        Map.empty,
+        List.empty,
+        orderRight = true,
+        none,
+        skipped = false,
+        none
+      )
+    )
 
   /** Creates a player with PlayerID and joins the game
     * @param playerID
@@ -107,16 +106,16 @@ case class Game(
         }
     } yield res
 
-  /**
-   * Reconnects a player
-   * @param playerID - player that reconnected
-   * @return
-   */
+  /** Reconnects a player
+    * @param playerID
+    *   \- player that reconnected
+    * @return
+    */
   private def reconnect(playerID: PlayerID): IO[Unit] = {
     for {
       handOpt <- getHand(playerID)
       _ <- handOpt.fold(IO.println("recon failed to update hand"))(hand =>
-        webSocketHub.sendToPlayer2(playerID)(CardsInHand(hand)) //should re-send events they missed
+        webSocketHub.sendToPlayer2(playerID)(CardsInHand(hand)) // should re-send events they missed
       )
     } yield ()
   }
@@ -142,7 +141,6 @@ case class Game(
       })
       .flatMap(players => webSocketHub.broadcast(LeftGame(playerID, players)))
 
-
   // -----manage player turns -------------------------------//
 
   /** Sets the current player index to a random number, bounded by how many players are in-game
@@ -157,25 +155,25 @@ case class Game(
 
   /** Sets the current player index to the next player
     */
-  private def rightOfPlayer(): IO[PlayerID] =
-    gameStateRef.modify { gameState =>
+  private def rightOfPlayer(): IO[Unit] =
+    gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex + 1 match {
         case x if (1 until gameState.players.length).contains(x) => x
         case _                                                   => 0
       }
-      (gameState.copy(currentPlayerIndex = index), gameState.players(index).playerID)
+      gameState.copy(currentPlayerIndex = index)
     }
 
   /** Sets the current player index to the previous player
     */
-  private def leftOfPlayer(): IO[PlayerID] =
-    gameStateRef.modify { gameState =>
+  private def leftOfPlayer(): IO[Unit] =
+    gameStateRef.update { gameState =>
       val index = gameState.currentPlayerIndex - 1 match {
         case x if x < 0 => gameState.players.length - 1
         case x          => x
       }
 
-      (gameState.copy(currentPlayerIndex = index), gameState.players(index).playerID)
+      gameState.copy(currentPlayerIndex = index)
     }
 
   /** gets the current player index to the next player
@@ -202,13 +200,23 @@ case class Game(
 
   private def nextPlayer(): IO[Unit] =
     for {
-      turnsLeft <- gameStateRef.get.map(_.turnsLeft)
-      _ <-
-        if (turnsLeft > 0) IO.unit
+      nextPlayerI <- gameStateRef.get.map(_.nextPlayerIndex)
+      turnsLeft   <- gameStateRef.get.map(_.turnsLeft)
+      _ <- nextPlayerI.fold(
+        if (turnsLeft > 1) IO.unit // same player
         else
-          gameStateRef.update(state => state.copy(turnsLeft = 1, skipped = false)) *> gameStateRef.get.flatMap(gameState =>
-            if (gameState.orderRight) rightOfPlayer() else leftOfPlayer()
-          )
+          gameStateRef.get.flatMap(gameState => if (gameState.orderRight) rightOfPlayer() else leftOfPlayer())
+      )(index => gameStateRef.update(_.copy(currentPlayerIndex = index)))
+      _ <- gameStateRef.update(state =>
+        state.copy(
+          turnsLeft = state.turnsLeft match {
+            case 1 => 1
+            case x => x - 1
+          },
+          skipped = false,
+          nextPlayerIndex = none
+        )
+      )
     } yield ()
 
   private def getCurrentPlayer: IO[PlayerID] =
@@ -221,7 +229,7 @@ case class Game(
     gameStateRef.get.flatMap(gameState => if (gameState.orderRight) getRightOfPlayer else getLeftOfPlayer)
   }
 
-  private def previousPlayer(): IO[PlayerID] = {
+  private def previousPlayer(): IO[Unit] = {
     gameStateRef.get.flatMap(gameState => if (gameState.orderRight) leftOfPlayer() else rightOfPlayer())
   }
 
@@ -229,20 +237,23 @@ case class Game(
     gameStateRef.update(gameState => gameState.copy(orderRight = !gameState.orderRight))
   }
 
-  /** Sets the current player index to the index of a given player
+  /** Sets the next player index to the index of a given player
     * @param playerID
     *   player to set as the next one
     */
-  private def setNextPlayer(playerID: PlayerID): IO[Unit] = //remove this
+  private def setNextPlayer(playerID: PlayerID): IO[Unit] =
     gameStateRef.update { gameState =>
       val index = gameState.players.map(_.playerID).indexOf(playerID)
-      gameState.copy(currentPlayerIndex = index)
+      gameState.copy(nextPlayerIndex = index.some)
     }
 
-  private def setNextPlayer(playerID: PlayerID, turns: Int): IO[Unit] =
-    gameStateRef.update { gameState =>
-      val index = gameState.players.map(_.playerID).indexOf(playerID)
-      gameState.copy(currentPlayerIndex = index, turnsLeft = turns)
+  /** Adds amount of turns to turns Left
+    * @param turns
+    *   how many
+    */
+  private def addTurns(turns: Int): IO[Unit] =
+    gameStateRef.update { state =>
+      state.copy(turnsLeft = turns + state.turnsLeft)
     }
 
   // ----manage win and lose----------------------------------//
@@ -298,9 +309,9 @@ case class Game(
 
   private def debugTurn(): IO[Unit] = for {
     state <- gameStateRef.get
-    _         <- IO.println(s"discard: ${state.discardDeck}")
-    _         <- IO.println(s"draw: ${state.drawDeck}")
-    _ <- IO.println(s"${state.players(state.currentPlayerIndex)} for ${state.turnsLeft}")
+    _     <- IO.println(s"discard: ${state.discardDeck}")
+    _     <- IO.println(s"draw: ${state.drawDeck}")
+    _     <- IO.println(s"${state.players(state.currentPlayerIndex)} for ${state.turnsLeft}")
   } yield ()
 
   private def playerOnDisconnect(playerID: PlayerID): IO[Unit] =
@@ -316,11 +327,10 @@ case class Game(
     .race( // On current player disconnected - break
       playerOnDisconnect(playerID),
       for {
-        _ <- debugTurn()
-        _ <- webSocketHub.broadcast(NewTurn(playerID))
-        turns     <- gameStateRef.get.map(_.turnsLeft)
-        _         <- playCardsLoop(playerID)
-        skip     <- gameStateRef.get.map(_.skipped)
+        _    <- debugTurn()
+        _    <- webSocketHub.broadcast(NewTurn(playerID))
+        _    <- playCardsLoop(playerID)
+        skip <- gameStateRef.get.map(_.skipped)
         _ <-
           if (!skip) {
             for {
@@ -332,22 +342,19 @@ case class Game(
 
             } yield ()
           } else IO.unit
-
       } yield ()
     )
     .void
 
   private def playCardsLoop(playerID: PlayerID): IO[Unit] =
     (for {
-      hand      <- getHand(playerID)
+      hand <- getHand(playerID)
       skip <- gameStateRef.get.map(_.skipped)
       pass <- hand
         .fold(true.pure[IO])(hand =>
           if (skip) true.pure[IO]
-          else /*if (canPlayAnything(hand))*/
+          else
             playOneCard(playerID, hand)
-//          else
-//            webSocketHub.sendToPlayer2(playerID)(Information("You don't have any cards you can play")) *> true.pure[IO]
         )
     } yield pass).flatMap(pass =>
       if (pass) {
@@ -385,11 +392,6 @@ case class Game(
     gameStateRef.get.map { state =>
       state.playersHands.map { case (id, (_, count)) => (id, count) }
     }
-  private def canPlayAnything(hand: Hand): Boolean =
-    hand.nonEmpty && !hand.forall(_ match {
-      case ExplodingKitten | Defuse | Nope => true
-      case _                               => false
-    })
 
   private def tryToDefuseCard(playerID: PlayerID, card: Card): IO[Unit] =
     for {
@@ -432,8 +434,8 @@ case class Game(
         })
       res <- if (card == BarkingKitten) false.pure[IO] else getNopeCards(player, playerHandsWithNope, card :: Nil)
       _ <- card match {
-        case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 0, skipped = true))
-        case _: Skipper => gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1, skipped = true))
+        case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 1, skipped = true))
+        case _: Skipper => gameStateRef.update(state => state.copy(skipped = true))
 
         case _ => IO.unit
       }
@@ -457,7 +459,8 @@ case class Game(
             case Attack2X =>
               for {
                 np <- getNextPlayer
-                _ <- setNextPlayer(np)
+                _  <- setNextPlayer(np)
+                _  <- addTurns(2)
               } yield ()
 
             case TargetedAttack2X =>
@@ -465,6 +468,7 @@ case class Game(
                 players    <- gameStateRef.get.map(_.players.filterNot(_.playerID == player).map(_.playerID))
                 nextPlayer <- prompter.choosePlayer(player, players)
                 _          <- setNextPlayer(nextPlayer)
+                _          <- addTurns(2)
               } yield ()
 
             case CatomicBomb =>
@@ -474,7 +478,7 @@ case class Game(
               for {
                 card <- handleDrawCard(player, top = true)
                 _    <- buryCard(player, card)
-                _    <- gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
+                _    <- gameStateRef.update(state => state.copy(skipped = true))
               } yield ()
 
             case Reverse =>
@@ -491,9 +495,7 @@ case class Game(
                 }
               } yield ()
             case DrawFromTheBottom =>
-              handleDrawCard(player, top = false) *> gameStateRef.update(state =>
-                state.copy(turnsLeft = state.turnsLeft - 1)
-              )
+              handleDrawCard(player, top = false) *> gameStateRef.update(state => state.copy(skipped = true))
             case GarbageCollection =>
               for {
                 playersWithCards <- gameStateRef.get.map(_.playersHands.filter { case (_, h) => h.nonEmpty }.keys)
@@ -513,7 +515,7 @@ case class Game(
                 opt          <- getHand(chosenPlayer)
                 _            <- opt.fold(IO.unit)(hand => showCardFromPlayer(chosenPlayer, getRandomFromList(hand)))
               } yield ()
-            case PersonalAttack3X => gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft + 2))
+            case PersonalAttack3X => addTurns(2)
             case SeeTheFuture3X =>
               gameStateRef.get
                 .map(_.drawDeck)
@@ -548,7 +550,7 @@ case class Game(
         val (hand, HandCount(hidden, shown)) = state.playersHands(playerID)
         state.copy(playersHands = state.playersHands + (playerID -> (hand, HandCount(hidden - 1, shown :+ card))))
       })
-      _ <- webSocketHub.broadcast(Information(s"shown card ${card} from ${playerID}"))
+      _ <- webSocketHub.broadcast(Information(s"shown card $card from $playerID"))
       // TODO: send event
     } yield ()
 
@@ -620,7 +622,6 @@ case class Game(
           newHand
         )
       })
-      _ <- gameStateRef.update(state => state.copy(turnsLeft = state.turnsLeft - 1))
       _ <- webSocketHub.sendToPlayer2(player)(DrawCard(card, player.some))
       _ <- webSocketHub.sendToPlayer2(player)(CardsInHand(hand))
 
@@ -670,19 +671,6 @@ case class Game(
     }
 
   // ------ players hand--------------------------------//
-
-  /** Tries to find a defuse in the cards the player is holding
-    *
-    * @return
-    *   Option of defuse index in the current player's hand
-    */
-  private def tryFindDefuseIndex(): IO[Option[Int]] =
-    gameStateRef.get.map { gameState =>
-      val playerID = gameState.players(gameState.currentPlayerIndex).playerID
-      val hand     = gameState.playersHands(playerID)._1
-      hand.zipWithIndex
-        .collectFirst { case (Defuse, i) => i }
-    }
 
   /** Plays the card at given index, removing it from the player's hand, discarding it and returning the card
     *
@@ -847,7 +835,7 @@ case class Game(
               playCard(playerHandsWithNope(pID).indexOf(Nope), pID) *> true.pure[IO]
             }
           } yield res
-        ).flatMap {
+        ).flatTap(_ => webSocketHub.broadcast(EndNopes())).flatMap {
           case Left(_)      => false.pure[IO]
           case Right(value) => value.pure[IO]
         }
@@ -878,10 +866,9 @@ object Game {
       Map.empty,
       List.empty,
       orderRight = true,
-      passed = false,
-      skipped = false,
       none,
-
+      skipped = false,
+      none
     )
 
     for {

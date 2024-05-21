@@ -44,6 +44,7 @@ object Event {
 
   case class ActionNoped() extends Event
   case class GetNopes(cards: List[Card]) extends Event
+  case class EndNopes() extends Event
   case class Timer(seconds: Int) extends Event
 
 
@@ -77,6 +78,7 @@ object Event {
 
   implicit val nopedEncoder: Encoder[ActionNoped]       = deriveEncoder[ActionNoped]
   implicit val getNopesEncoder: Encoder[GetNopes]       = deriveEncoder[GetNopes]
+  implicit val endNopesEncoder: Encoder[EndNopes]       = deriveEncoder[EndNopes]
   implicit val timerEncoder: Encoder[Timer]       = deriveEncoder[Timer]
 
   implicit val eventEncoder: Encoder[Event] = Encoder.instance {
@@ -102,6 +104,7 @@ object Event {
     case see: SeeCards           => see.asJson.mapObject(_.add("event", "see_the_future".asJson))
     case nope: ActionNoped           => nope.asJson.mapObject(_.add("event", "noped".asJson))
     case nopes: GetNopes           => nopes.asJson.mapObject(_.add("event", "nope_card".asJson))
+    case end: EndNopes           => end.asJson.mapObject(_.add("event", "end_nope".asJson))
     case timer: Timer           => timer.asJson.mapObject(_.add("event", "timer".asJson))
   }
 }

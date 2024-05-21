@@ -17,7 +17,7 @@ case class State(
     disconnections: Map[PlayerID, Deferred[IO, Boolean]],
     marking: List[(PlayerID,PlayerID)],
     orderRight: Boolean,
-    passed: Boolean,
+    nextPlayerIndex: Option[Int],
     skipped: Boolean,
     barkingKitten: Option[PlayerID]
 )
