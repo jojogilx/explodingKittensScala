@@ -1,8 +1,8 @@
 package websockethub
 
 import cats.effect.std.Queue
-import cats.effect.{Deferred, IO, Ref}
-import cats.implicits.{catsSyntaxOptionId, toFoldableOps, toTraverseOps}
+import cats.effect.{IO, Ref}
+import cats.implicits.{toFoldableOps, toTraverseOps}
 import io.circe.syntax._
 import fs2._
 import org.http4s.websocket.WebSocketFrame
@@ -25,8 +25,6 @@ trait WebSocketHub {
 
   def endGame(): IO[Unit]
 
-  def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]]
-
   def disconnectPlayer(playerID: PlayerID): IO[Unit]
 }
 
@@ -34,8 +32,6 @@ object WebSocketHub {
   def of: IO[WebSocketHub] = for {
     stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame], IO[Unit])]](Map.empty)
     systemQueue      <- Queue.unbounded[IO, (PlayerID, String)]
-    pendingInputsRef <- Ref.of[IO, Map[PlayerID, Deferred[IO, String]]](Map.empty)
-
   } yield new WebSocketHub {
 
     override def connect(
@@ -125,28 +121,6 @@ object WebSocketHub {
         .compile
         .lastOrError
 
-    override def getPendingInputs(players: List[PlayerID], message: Message): IO[Option[PlayerID]] =
-      for {
-        deferred  <- Deferred[IO, Option[PlayerID]]
-        deferreds <- players.traverse(_ => Deferred[IO, String])
-        map = players.zip(deferreds).toMap
-        _ <- pendingInputsRef.update(_ => map)
-        _ <- IO.race(
-          Stream
-            .repeatEval(systemQueue.take)
-            .evalMap({
-              case (id, str) if str.trim.toLowerCase.replaceAll("\n", "") == message =>
-                deferred.complete(id.some) *> IO.pure(true)
-              case (id, _) =>
-                pendingInputsRef.get.map(map => map(id)).flatMap(deferred => deferred.complete(id)) *> IO.pure(false)
-            })
-            .takeWhile(!_)
-            .compile
-            .drain,
-          pendingInputsRef.get.flatMap(map => map.values.toList.traverse(_.get) *> deferred.complete(None))
-        )
-        res <- deferred.get
-      } yield res
 
     override def endGame(): IO[Unit] =
       stateRef.get.flatMap(map =>

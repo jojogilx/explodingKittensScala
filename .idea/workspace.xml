@@ -7,8 +7,7 @@
     <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="fixed attacks and play turns!">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
