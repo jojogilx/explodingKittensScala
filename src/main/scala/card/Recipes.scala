@@ -102,7 +102,7 @@ case object AttackOfTheAttacks extends Recipe {
         Nope -> 4,
         CatomicBomb -> 1
       )
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -163,7 +163,7 @@ case object BlackHole extends Recipe {
       FeralCat -> "4"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 0
@@ -209,7 +209,7 @@ case object DangerMode extends Recipe {
       FeralCat -> "4"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1
@@ -250,7 +250,7 @@ case object ExplodingKittensClassicMode extends Recipe {
       RainbowRalphingCat -> "4"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -461,7 +461,7 @@ case object SharingIsCaring extends Recipe {
       BarkingKitten -> "2"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -505,7 +505,7 @@ case object StickyFingers extends Recipe {
       FeralCat -> "6"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -548,7 +548,7 @@ case object ThePurrage extends Recipe {
       Nope -> "8"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -588,7 +588,7 @@ case object MindGames extends Recipe {
       RainbowRalphingCat -> "4",
       ZombieCat -> "4"
     )
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1
@@ -629,7 +629,7 @@ case object CardHoarders extends Recipe {
       Nope -> "4"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 2
   override val maxPlayers: Int = 4
   override val defusesOnStart: Int = 1

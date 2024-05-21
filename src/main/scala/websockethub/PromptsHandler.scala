@@ -6,82 +6,9 @@ import cats.implicits.catsSyntaxApplicativeId
 import players.Player.{Hand, PlayerID}
 import websockethub.Event._
 
+import scala.concurrent.duration.DurationInt
+
 case class PromptsHandler(webSocketHub: WebSocketHub) {
-
-  def chooseBetween2Options(
-      playerID: PlayerID,
-      opt1: String,
-      opt1Accept: String,
-      opt2: String,
-      opt2Accept: String
-  ): IO[Either[Unit, Unit]] =
-    (for {
-      _ <- webSocketHub.sendToPlayer(playerID)(
-        s"Do you want to $opt1 or $opt2? ($opt1Accept to $opt1, $opt2Accept to $opt2)"
-      )
-
-      inp <- webSocketHub.getGameInput(playerID).map(_.trim)
-
-      answer <- inp match {
-        case s"${ans}" if ans == opt1Accept => Left().pure[IO]
-        case s"${ans}" if ans == opt2Accept => Right().pure[IO]
-        case _ =>
-          webSocketHub.sendToPlayer(playerID)(
-            "Invalid answer. Please type s to spectate or q to quit"
-          ) *> chooseBetween2Options(playerID, opt1, opt1Accept, opt2, opt2Accept)
-      }
-
-    } yield answer).flatTap(_ => IO.println("here"))
-
-//  def targetAttackPrompter(playerID: PlayerID, playersCanTarget: List[Player]): IO[Player] =
-//    chooseWithIndex(
-//      webSocketHub.sendToPlayer(playerID)(_),
-//      () => webSocketHub.getGameInput(playerID),
-//      "\nWho do you want to target?\n",
-//      playersCanTarget,
-//      (players: List[Player]) => players.map(_.playerID),
-//      "\n"
-//    )
-
-//  def chooseWithIndex[T](
-//      sender: String => IO[Unit],
-//      receiver: () => IO[String],
-//      prompt: String,
-//      list: List[T],
-//      display: List[T] => List[String],
-//      separator: String
-//  ): IO[T] =
-//    for {
-//      _   <- sender(prompt)
-//      _   <- webSocketHub.sendToHost(display(list).toString())
-////      _   <- webSocketHub.sendToHost(getStringWithIndex(display(list), separator))
-//      input <- receiver().map(_.toIntOption)
-//
-//      thing <- input match {
-//        case Some(index) =>
-//          list.lift(index - 1) match {
-//            case Some(value) => value.pure[IO]
-//            case None =>
-//              webSocketHub.sendToHost("Invalid index") *> chooseWithIndex[T](
-//                sender,
-//                receiver,
-//                prompt,
-//                list,
-//                display,
-//                separator
-//              )
-//          }
-//        case None =>
-//          webSocketHub.sendToHost(s"Invalid input, choose between 1 and ${list.length}") *> chooseWithIndex[T](
-//            sender,
-//            receiver,
-//            prompt,
-//            list,
-//            display,
-//            separator
-//          )
-//      }
-//    } yield thing
 
   def playCardsPrompt(player: PlayerID, playerHand: Hand): IO[Option[List[Int]]] = {
     for {
@@ -151,13 +78,13 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       valid <- string match {
         case Some(value) =>
           value match {
-            case x if (1 to players.length) contains x =>
-              players.filterNot(_ == playerID)(x - 1).pure[IO]
+            case x if (0 to players.length) contains x =>
+              players(x).pure[IO]
             case _ =>
-              webSocketHub.sendToPlayer(playerID)("Invalid index") *> choosePlayer(playerID, players)
+              webSocketHub.sendToPlayer2(playerID)(Error("Invalid index")) *> choosePlayer(playerID, players)
           }
         case None =>
-          webSocketHub.sendToPlayer(playerID)("Invalid input") *> choosePlayer(playerID, players)
+          webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> choosePlayer(playerID, players)
       }
     } yield valid
 
@@ -183,4 +110,36 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       }
     } yield valid
   }
+
+
+  def chooseCard(playerID: PlayerID, cards: List[Card]): IO[Card] =
+    for {
+      _      <- webSocketHub.sendToPlayer2(playerID)(ChooseCard(cards))
+      string <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
+      valid <- string match {
+        case Some(value) =>
+          value match {
+            case x if (0 until cards.length) contains x =>
+              cards(x).pure[IO]
+            case _ =>
+              webSocketHub.sendToPlayer2(playerID)(Error("Invalid index")) *> chooseCard(playerID, cards)
+          }
+        case None =>
+          webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> chooseCard(playerID, cards)
+      }
+    } yield valid
+
+
+
+  def broadCastCountDown(counter: Int): IO[Unit] =
+    if (counter <= 0) IO.unit
+    else
+      for {
+        _ <- webSocketHub.broadcast(s"$counter") //remove
+        _ <- IO.sleep(1.seconds)
+        _ <- broadCastCountDown(counter - 1)
+      } yield ()
+
+
+
 }

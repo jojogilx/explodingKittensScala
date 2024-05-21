@@ -42,6 +42,11 @@ object Event {
   case class AlterCardOrder(next_cards: List[Card])           extends Event
   case class SeeCards(cards: List[Card])                 extends Event
 
+  case class ActionNoped() extends Event
+  case class GetNopes(cards: List[Card]) extends Event
+  case class Timer(seconds: Int) extends Event
+
+
   // encoders
   implicit val joinedEncoder: Encoder[Joined]            = deriveEncoder[Joined]
   implicit val leftGameEncoder: Encoder[LeftGame]        = deriveEncoder[LeftGame]
@@ -69,6 +74,11 @@ object Event {
   implicit val alterOrderEncoder: Encoder[AlterCardOrder]       = deriveEncoder[AlterCardOrder]
   implicit val seeCardsEncoder: Encoder[SeeCards]       = deriveEncoder[SeeCards]
 
+
+  implicit val nopedEncoder: Encoder[ActionNoped]       = deriveEncoder[ActionNoped]
+  implicit val getNopesEncoder: Encoder[GetNopes]       = deriveEncoder[GetNopes]
+  implicit val timerEncoder: Encoder[Timer]       = deriveEncoder[Timer]
+
   implicit val eventEncoder: Encoder[Event] = Encoder.instance {
     case joined: Joined            => joined.asJson.mapObject(_.add("event", "joined".asJson))
     case left: LeftGame            => left.asJson.mapObject(_.add("event", "left".asJson))
@@ -90,5 +100,8 @@ object Event {
     case garbage: GarbageCollect           => garbage.asJson.mapObject(_.add("event", "garbage_collection".asJson))
     case alter: AlterCardOrder           => alter.asJson.mapObject(_.add("event", "alter_the_future".asJson))
     case see: SeeCards           => see.asJson.mapObject(_.add("event", "see_the_future".asJson))
+    case nope: ActionNoped           => nope.asJson.mapObject(_.add("event", "noped".asJson))
+    case nopes: GetNopes           => nopes.asJson.mapObject(_.add("event", "nope_card".asJson))
+    case timer: Timer           => timer.asJson.mapObject(_.add("event", "timer".asJson))
   }
 }

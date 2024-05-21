@@ -1,7 +1,7 @@
 package game
 
 import card.Recipes._
-import card.{LightningKittens, Recipes}
+import card.{AttackOfTheAttacks, Recipes}
 import cats.effect._
 import cats.effect.std.Queue
 import cats.effect.unsafe.implicits.global
@@ -47,7 +47,7 @@ object Lobby extends IOApp {
     for {
       gamesRef      <- Ref.of[IO, Map[String, Game]](Map.empty)
       roomsQueueRef <- Ref.of[IO, Map[UUID, Queue[IO, WebSocketFrame]]](Map.empty)
-      game <- Game.create("room", LightningKittens)
+      game <- Game.create("room", AttackOfTheAttacks)
       _ <- gamesRef.updateAndGet(rooms => rooms + ("room" -> game))
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
@@ -135,9 +135,6 @@ object Lobby extends IOApp {
             case GET -> Root / "ping" =>
               Ok().map(_.withEntity("pong"))
 
-
-
-
             case req @ POST -> Root / "create" =>
               req.decodeJson[RoomCreationForm].flatMap { form =>
                 val roomName     = form.roomName
@@ -162,6 +159,21 @@ object Lobby extends IOApp {
                     }
                 } yield res
               }
+
+            case POST -> Root / "reset" / game =>
+              for {
+                games <- gamesRef.get.map(_.keys.toList)
+                res <-
+                  if (!games.contains(game.trim)) BadRequest("error" -> "Room doesn't exist".asJson)
+                  else
+                    gamesRef.get.flatMap(rooms => {
+                      rooms
+                        .get(game.trim)
+                        .fold(BadRequest("error" -> "error".asJson))(game =>
+                          game.reset() *> Ok()
+                        )
+                    })
+              } yield res
 
           }
           .orNotFound

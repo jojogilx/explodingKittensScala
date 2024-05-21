@@ -12,6 +12,9 @@ sealed trait CatCard extends Card {
   override val description: String = s"This is a cat card and is powerless on its own. Play two ${title}s to steal a random card from another player or 3 to name a card you want from them"
 }
 
+sealed trait CatCombo2X extends Card
+sealed trait CatCombo3X extends Card
+
 sealed trait Now
 sealed trait Skipper
 
@@ -140,22 +143,22 @@ case object Bury extends Card {
 
   case object PersonalAttack3X extends Card {
     override val description: String = "Take three turns in a row"
-    override val title: String = "Personal Attack 3X"
+    override val title: String = "Personal Attack (3X)"
   }
 
   case object SeeTheFuture3X extends Card {
     override val description: String = "Privately view the top three cards of the deck"
-    override val title: String = "See The Future 3X"
+    override val title: String = "See The Future (3X)"
   }
 
   case object SeeTheFuture5X extends Card {
     override val description: String = "Privately view the top five cards of the deck"
-    override val title: String = "See The Future 5X"
+    override val title: String = "See The Future (5X)"
   }
 
   case object ShareTheFuture3X extends Card {
     override val description: String = "View and rearrange the top three cards in the draw pile, then show the cards to the next player"
-    override val title: String = "Share The Future 3X"
+    override val title: String = "Share The Future (3X)"
   }
 
   case object StreakingKitten extends Card {

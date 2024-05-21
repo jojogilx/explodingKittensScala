@@ -4,9 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="implemented barking and illtakethat cards. simplified code">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="restructured prompts and steal cards">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Card.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Card.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/gamestate/State.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -142,14 +147,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00049" summary="deck test rollback">
-      <option name="closed" value="true" />
-      <created>1710866105002</created>
-      <option name="number" value="00049" />
-      <option name="presentableId" value="LOCAL-00049" />
-      <option name="project" value="LOCAL" />
-      <updated>1710866105002</updated>
     </task>
     <task id="LOCAL-00050" summary="added some doc to Game">
       <option name="closed" value="true" />
@@ -535,7 +532,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715954289635</updated>
     </task>
-    <option name="localTasksCounter" value="98" />
+    <task id="LOCAL-00098" summary="moves alter the future to the prompter">
+      <option name="closed" value="true" />
+      <created>1715955459550</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1715955459551</updated>
+    </task>
+    <option name="localTasksCounter" value="99" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -551,8 +556,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="added ??? cards" />
-    <MESSAGE value="changed player turn to include player instead of fetching it" />
     <MESSAGE value="prompt for recipe choice" />
     <MESSAGE value="small changes to recipes and change get to post" />
     <MESSAGE value="added host to websocketHub and splitting multiple lines" />
@@ -576,17 +579,8 @@
     <MESSAGE value="playing multiple cards. TODO fix skip bugged" />
     <MESSAGE value="skip fixed" />
     <MESSAGE value="implemented barking and illtakethat cards. simplified code" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented barking and illtakethat cards. simplified code" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="scala-line">
-          <url>file://$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala</url>
-          <line>146</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="moves alter the future to the prompter" />
+    <MESSAGE value="restructured prompts and steal cards" />
+    <option name="LAST_COMMIT_MESSAGE" value="restructured prompts and steal cards" />
   </component>
 </project>
