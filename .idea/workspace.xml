@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="garbage collection implemented. needs testing">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="changed alter the future">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -144,14 +142,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00053" summary="nope properly implemented">
-      <option name="closed" value="true" />
-      <created>1710950695798</created>
-      <option name="number" value="00053" />
-      <option name="presentableId" value="LOCAL-00053" />
-      <option name="project" value="LOCAL" />
-      <updated>1710950695798</updated>
     </task>
     <task id="LOCAL-00054" summary="fixed targeted attack&#10;started to try to warn players of game end">
       <option name="closed" value="true" />
@@ -537,7 +527,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716364820473</updated>
     </task>
-    <option name="localTasksCounter" value="102" />
+    <task id="LOCAL-00102" summary="changed alter the future">
+      <option name="closed" value="true" />
+      <created>1716374954122</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1716374954123</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -553,7 +551,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="CORS solved" />
     <MESSAGE value="started to send events to FE" />
     <MESSAGE value="FE" />
     <MESSAGE value="play card is ok" />
@@ -578,6 +575,7 @@
     <MESSAGE value="restructured noping" />
     <MESSAGE value="nope working" />
     <MESSAGE value="garbage collection implemented. needs testing" />
-    <option name="LAST_COMMIT_MESSAGE" value="garbage collection implemented. needs testing" />
+    <MESSAGE value="changed alter the future" />
+    <option name="LAST_COMMIT_MESSAGE" value="changed alter the future" />
   </component>
 </project>

@@ -432,17 +432,30 @@ case class Game(
           case _                                => false
         })
       res <- if (card == BarkingKitten || playerHandsWithNope.isEmpty) false.pure[IO] else getNopes(playerHandsWithNope)
-      _ <- if (res) IO.unit else
-        card match {
-        case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 1, skipped = true))
-        case _: Skipper => gameStateRef.update(state => state.copy(skipped = true))
+      _ <-
+        if (res) IO.unit
+        else
+          card match {
+            case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 1, skipped = true))
+            case _: Skipper => gameStateRef.update(state => state.copy(skipped = true))
 
-        case _ => IO.unit
-      }
+            case _ => IO.unit
+          }
       _ <-
         if (res) IO.unit // Card was noped, card played with no effect
         else
           card match {
+            case FeralCat =>
+              for {
+                players <- gameStateRef.get.map(_.players.map(_.playerID).filterNot(_ == player))
+                _       <- stealFromPlayer(player, players, isRandom = false)
+              } yield ()
+
+            case _: CatCard =>
+              for {
+                players <- gameStateRef.get.map(_.players.map(_.playerID).filterNot(_ == player))
+                _       <- stealFromPlayer(player, players, isRandom = true)
+              } yield ()
             case Shuffle =>
               updateDrawDeck(_.shuffled)
 
@@ -540,15 +553,16 @@ case class Game(
 
   private def garbageCollection() = {
     for {
-      playersWithCards <- gameStateRef.get.map(_.playersHands.filter { case (_, h) => h.nonEmpty }.map(a => a._1 -> a._2._1))
-      list                <- prompter.garbageCollectionPrompt(playersWithCards)
-      cards <- list.traverse {case (player, index) => removeCardAt(player,index)}
-      _ <- cards.traverse_ (card =>  gameStateRef.update(state => state.copy(drawDeck = state.drawDeck.prepend(card))))
+      playersWithCards <- gameStateRef.get.map(
+        _.playersHands.filter { case (_, h) => h.nonEmpty }.map(a => a._1 -> a._2._1)
+      )
+      list  <- prompter.garbageCollectionPrompt(playersWithCards)
+      cards <- list.traverse { case (player, index) => removeCardAt(player, index) }
+      _ <- cards.traverse_(card => gameStateRef.update(state => state.copy(drawDeck = state.drawDeck.prepend(card))))
       _ <- gameStateRef.update(state => state.copy(drawDeck = state.drawDeck.shuffled))
     } yield cards
 
   }
-
 
   private def removeCardAt(player: PlayerID, index: Int): IO[Card] =
     gameStateRef.modify(state => {
@@ -569,9 +583,6 @@ case class Game(
         card
       )
     })
-
-
-
 
   // ___________ Deck Operations ______________________________//
 
@@ -772,13 +783,22 @@ case class Game(
     * @param isRandom
     *   if the card stolen should be random
     */
-  private def stealFromPlayer(player: PlayerID, players: List[Player], isRandom: Boolean): IO[Unit] =
+  private def stealFromPlayer(player: PlayerID, players: List[PlayerID], isRandom: Boolean): IO[Unit] =
     for {
-      players      <- gameStateRef.get.map(_.players.filterNot(_.playerID == player).map(_.playerID))
       chosenPlayer <- prompter.choosePlayer(player, players)
 
       card <-
-        if (isRandom) prompter.chooseCard(player, recipe.getCardMap.map(_._1))
+        if (isRandom)
+          prompter.chooseCard(
+            player,
+            recipe.getCardMap
+              .map(_._1)
+              .filter({
+                case ExplodingKitten    => false
+                case ImplodingKitten(_) => false
+                case _                  => true
+              })
+          )
         else
           for {
             chosenHand <- gameStateRef.get.map(_.playersHands(chosenPlayer)._1)
@@ -836,8 +856,10 @@ case class Game(
         )
       }
 
-  /** ask players if they want to nope this action, returns true on the first player that answers yes or false if runs out of time
-    * @param playerHandsWithNope players holding nopes
+  /** ask players if they want to nope this action, returns true on the first player that answers yes or false if runs
+    * out of time
+    * @param playerHandsWithNope
+    *   players holding nopes
     * @return
     *   true if anyone noped
     */
@@ -847,45 +869,43 @@ case class Game(
     for {
       deferred <- Deferred[IO, (PlayerID, Int)]
 
-      res <- IO.race(
+      res <- IO
+        .race(
           IO.sleep(
             100.millis
           ) *> webSocketHub.broadcast(Timer(5)) *> prompter.broadCastCountDown(5) *> false.pure[IO],
           for {
             _ <- playerHandsWithNope.toList.parTraverse { case (pID, hand) =>
-             getNopeFrom(pID, hand, deferred)
+              getNopeFrom(pID, hand, deferred)
             }
             res <- deferred.get
             (player, index) = res
             res <- playCard(index, player) *> true.pure[IO]
           } yield res
-        ).flatTap(_ => webSocketHub.broadcast(EndNopes()))
+        )
+        .flatTap(_ => webSocketHub.broadcast(EndNopes()))
         .flatMap {
-          case Left(_) => false.pure[IO]
+          case Left(_)      => false.pure[IO]
           case Right(value) => value.pure[IO]
         }
-      _<- IO.println(s"res is $res")
+      _ <- IO.println(s"res is $res")
     } yield res
   }
-  private def getNopeFrom(playerID: PlayerID, hand: Hand, deferred: Deferred[IO,(PlayerID, Int)]): IO[Unit] =
+  private def getNopeFrom(playerID: PlayerID, hand: Hand, deferred: Deferred[IO, (PlayerID, Int)]): IO[Unit] =
     for {
-      _      <- webSocketHub.sendToPlayer2(playerID)(GetNopes(Nil))
+      _    <- webSocketHub.sendToPlayer2(playerID)(GetNopes(Nil))
       nope <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
       _ <- nope match {
         case Some(value) =>
           hand.get(value) match {
             case Some(card) if card == Nope => deferred.complete((playerID, value))
             case _ =>
-              webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> getNopeFrom(playerID,hand, deferred)
+              webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
           }
         case None =>
-          webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> getNopeFrom(playerID,hand, deferred)
+          webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
       }
     } yield ()
-
-
-
-
 
 }
 

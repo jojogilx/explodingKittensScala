@@ -24,6 +24,7 @@ object Deck {
   def removeDefuseAndBombs(deck: Deck, numberOfDefuses: Int): (List[Card], List[Card]) = {
     val (deck2, bombs) = deck.cards.filterNot(_==Defuse).partition({
       case ExplodingKitten => false
+      case ImplodingKitten(_) => false
       case _ => true
     })
 
