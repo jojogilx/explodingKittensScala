@@ -81,7 +81,7 @@ case class Deck(private val cards: List[Card]) {
    *   new altered deck
    */
   def alterTheFuture3X(order: String): Deck = {
-    val cardsNew  = order.map(_.toString.toInt - 1).map(getFirstN(3)).toList
+    val cardsNew  = order.map(_.toString.toInt).map(getFirstN(3)).toList
     val remainingDeck = removeFirst3()
     Deck(cardsNew ++ remainingDeck)
   }

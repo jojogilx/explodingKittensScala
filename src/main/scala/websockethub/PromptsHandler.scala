@@ -90,7 +90,7 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       _      <- webSocketHub.sendToPlayer2(playerID)(AlterCardOrder(cards3))
       string <- webSocketHub.getGameInput(playerID)
       valid <- string.toSet match {
-        case set if set == Set('1', '2', '3') => string.pure[IO]
+        case set if set == Set('0', '1', '2') => string.pure[IO]
         case s =>
           webSocketHub.sendToPlayer2(playerID)(
             Error(s"Invalid input $s, please specify order using only numbers")

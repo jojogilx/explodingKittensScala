@@ -418,7 +418,7 @@ case object PowerPlay extends Recipe {
       GarbageCollection -> "2"
     )
 
-  override val available: Boolean = false
+  override val available: Boolean = true
   override val minPlayers: Int = 3
   override val maxPlayers: Int = 5
   override val defusesOnStart: Int = 1

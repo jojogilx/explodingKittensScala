@@ -1,7 +1,7 @@
 package game
 
 import card.Recipes._
-import card.{AttackOfTheAttacks, Recipes}
+import card.{BlackHole, Recipes}
 import cats.effect._
 import cats.effect.std.Queue
 import cats.effect.unsafe.implicits.global
@@ -47,7 +47,7 @@ object Lobby extends IOApp {
     for {
       gamesRef      <- Ref.of[IO, Map[String, Game]](Map.empty)
       roomsQueueRef <- Ref.of[IO, Map[UUID, Queue[IO, WebSocketFrame]]](Map.empty)
-      game <- Game.create("room", AttackOfTheAttacks)
+      game <- Game.create("room", BlackHole)
       _ <- gamesRef.updateAndGet(rooms => rooms + ("room" -> game))
     } yield { wsb: WebSocketBuilder2[IO] =>
       {
