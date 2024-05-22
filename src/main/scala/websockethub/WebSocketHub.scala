@@ -2,7 +2,7 @@ package websockethub
 
 import cats.effect.std.Queue
 import cats.effect.{IO, Ref}
-import cats.implicits.{toFoldableOps, toTraverseOps}
+import cats.implicits.toTraverseOps
 import io.circe.syntax._
 import fs2._
 import org.http4s.websocket.WebSocketFrame
@@ -12,15 +12,11 @@ import websockethub.Event._
 
 
 trait WebSocketHub {
-  type Message = String
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
-  def sendToPlayer(player: PlayerID)(message: Message): IO[Unit]
   def sendToPlayer2(player: PlayerID)(event: Event): IO[Unit]
-  def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit]
-  def sendToGame(playerID: PlayerID)(message: Message): IO[Unit]
+  def broadcastExcept(playerID: PlayerID, message: Event): IO[Unit]
+  def sendToGame(playerID: PlayerID)(message: String): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
-
-  def broadcast(message: String): IO[Unit]
   def broadcast(event: Event): IO[Unit]
 
   def endGame(): IO[Unit]
@@ -42,18 +38,6 @@ object WebSocketHub {
       stateRef.update(map => if(!map.contains(player)) map + (player -> (queue, onDisconnected)) else map) *> IO.println(s"$player connected")
     }
 
-    override def sendToPlayer(playerID: PlayerID)(message: Message): IO[Unit] = {
-   //   IO.unit
-      sendToPlayer2(playerID)(Information(message))
-      /*stateRef.get.flatMap { messageMap =>
-        messageMap.get(playerID) match {
-          case Some((queue, _)) =>
-            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg)) *> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
-          case None =>
-            IO.println(s"Message queue not found for player $playerID")
-        }
-      }*/
-    }
 
     override def sendToPlayer2(playerID: PlayerID)(event: Event): IO[Unit] = {
 
@@ -70,16 +54,6 @@ object WebSocketHub {
 
 
 
-    override def broadcast(message: Message): IO[Unit] = {
-      broadcast(Information(message))
-//IO.unit
-      /*stateRef.get.flatMap(map =>
-        map.values.toList.traverse { case (queue, _) =>
-          message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg))*> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
-        }.void
-      )*/
-    }
-
     override def broadcast(event: Event): IO[Unit] = {
       IO.println(s"event: ${event.getClass}: $event") *> stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
@@ -89,14 +63,14 @@ object WebSocketHub {
     }
 
 
-    override def broadcastExcept(playerID: PlayerID, message: Message): IO[Unit] = {
+    override def broadcastExcept(playerID: PlayerID, event: Event): IO[Unit] = {
       stateRef.get.flatMap(map =>
         map
           .filterNot(_._1 == playerID)
           .values
           .toList
           .traverse { case (queue, _) =>
-            message.split("\n").map(msg => queue.offer(WebSocketFrame.Text(msg))*> queue.offer(WebSocketFrame.Text(" "))).toList.traverse_(identity)
+            queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
           }
           .void
       )

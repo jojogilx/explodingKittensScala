@@ -281,7 +281,7 @@ case class Game(
         )
 
       }
-      .flatMap(_ => webSocketHub.broadcast(s" $playerID DIED"))
+      .flatMap(_ => webSocketHub.broadcast(Died(playerID)))
 
   /** Checks if the game currently has a winner, meaning there is only one player left
     * @return
@@ -422,7 +422,6 @@ case class Game(
   // TODO restructure to include cat cards
   private def handleCardPlayed(player: PlayerID, card: Card): IO[Unit] =
     for {
-      _ <- webSocketHub.broadcast(s"$player played $card")
       playerHandsWithNope <- gameStateRef.get
         .map { state =>
           state.playersHands.map { case (id, (hand, _)) => id -> hand }
@@ -433,7 +432,8 @@ case class Game(
           case _                                => false
         })
       res <- if (card == BarkingKitten || playerHandsWithNope.isEmpty) false.pure[IO] else getNopes(playerHandsWithNope)
-      _ <- card match {
+      _ <- if (res) IO.unit else
+        card match {
         case SuperSkip  => gameStateRef.update(state => state.copy(turnsLeft = 1, skipped = true))
         case _: Skipper => gameStateRef.update(state => state.copy(skipped = true))
 
@@ -496,11 +496,7 @@ case class Game(
               } yield ()
             case DrawFromTheBottom =>
               handleDrawCard(player, top = false) *> gameStateRef.update(state => state.copy(skipped = true))
-            case GarbageCollection =>
-              for {
-                playersWithCards <- gameStateRef.get.map(_.playersHands.filter { case (_, h) => h.nonEmpty }.keys)
-                _                <- prompter.garbageCollectionPrompt(playersWithCards.toList)
-              } yield ()
+            case GarbageCollection => garbageCollection()
             case IllTakeThat =>
               for {
                 players      <- gameStateRef.get.map(_.players.filterNot(_.playerID == player))
@@ -541,6 +537,41 @@ case class Game(
             case _ => IO.unit
           }
     } yield ()
+
+  private def garbageCollection() = {
+    for {
+      playersWithCards <- gameStateRef.get.map(_.playersHands.filter { case (_, h) => h.nonEmpty }.map(a => a._1 -> a._2._1))
+      list                <- prompter.garbageCollectionPrompt(playersWithCards)
+      cards <- list.traverse {case (player, index) => removeCardAt(player,index)}
+      _ <- cards.traverse_ (card =>  gameStateRef.update(state => state.copy(drawDeck = state.drawDeck.prepend(card))))
+      _ <- gameStateRef.update(state => state.copy(drawDeck = state.drawDeck.shuffled))
+    } yield cards
+
+  }
+
+
+  private def removeCardAt(player: PlayerID, index: Int): IO[Card] =
+    gameStateRef.modify(state => {
+      val hand          = state.playersHands(player)
+      val card          = hand._1(index)
+      val (left, right) = hand._1.splitAt(index)
+      val newCards      = left ::: right.drop(1)
+
+      val hc =
+        if (hand._2.shown.contains(card))
+          hand._2.copy(shown = hand._2.shown.diff(List(card)))
+        else hand._2.copy(hidden = hand._2.hidden - 1)
+
+      (
+        state.copy(
+          playersHands = state.playersHands + (player -> (newCards, hc))
+        ),
+        card
+      )
+    })
+
+
+
 
   // ___________ Deck Operations ______________________________//
 
@@ -833,6 +864,7 @@ case class Game(
           case Left(_) => false.pure[IO]
           case Right(value) => value.pure[IO]
         }
+      _<- IO.println(s"res is $res")
     } yield res
   }
   private def getNopeFrom(playerID: PlayerID, hand: Hand, deferred: Deferred[IO,(PlayerID, Int)]): IO[Unit] =
@@ -850,6 +882,8 @@ case class Game(
           webSocketHub.sendToPlayer2(playerID)(Error("Invalid input")) *> getNopeFrom(playerID,hand, deferred)
       }
     } yield ()
+
+
 
 
 
