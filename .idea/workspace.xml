@@ -4,10 +4,13 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="changed alter the future">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="fixed imploding kitten being dealt">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Deck.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -142,14 +145,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00054" summary="fixed targeted attack&#10;started to try to warn players of game end">
-      <option name="closed" value="true" />
-      <created>1711016083061</created>
-      <option name="number" value="00054" />
-      <option name="presentableId" value="LOCAL-00054" />
-      <option name="project" value="LOCAL" />
-      <updated>1711016083061</updated>
     </task>
     <task id="LOCAL-00055" summary="fixed nope card">
       <option name="closed" value="true" />
@@ -535,7 +530,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716374954123</updated>
     </task>
-    <option name="localTasksCounter" value="103" />
+    <task id="LOCAL-00103" summary="fixed imploding kitten being dealt">
+      <option name="closed" value="true" />
+      <created>1716390890821</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1716390890821</updated>
+    </task>
+    <option name="localTasksCounter" value="104" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -551,7 +554,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="started to send events to FE" />
     <MESSAGE value="FE" />
     <MESSAGE value="play card is ok" />
     <MESSAGE value="Restructure to delete room" />
@@ -576,6 +578,7 @@
     <MESSAGE value="nope working" />
     <MESSAGE value="garbage collection implemented. needs testing" />
     <MESSAGE value="changed alter the future" />
-    <option name="LAST_COMMIT_MESSAGE" value="changed alter the future" />
+    <MESSAGE value="fixed imploding kitten being dealt" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed imploding kitten being dealt" />
   </component>
 </project>
