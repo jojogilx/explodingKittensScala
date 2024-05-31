@@ -89,9 +89,7 @@ case object AttackOfTheAttacks extends Recipe {
         ExplodingKitten -> (`# Players` - 1),
         Defuse -> (`# Players` + 1),
         Attack2X -> 4,
-        TargetedAttack2X -> {
-          if (`# Players` == 5) 6 else 4
-        },
+        TargetedAttack2X -> 6,
         Skip -> 4,
         SuperSkip -> 2,
         Reverse -> 3,
@@ -116,7 +114,7 @@ case object AttackOfTheAttacks extends Recipe {
         ExplodingKitten -> "# Players - 1",
         Defuse -> "# Players + 1",
         Attack2X -> "4",
-        TargetedAttack2X -> "2-4 players: 4; 5 players: 6",
+        TargetedAttack2X -> "6",
         Skip -> "4",
         SuperSkip -> "2",
         Reverse -> "3",
@@ -225,12 +223,12 @@ case object ExplodingKittensClassicMode extends Recipe {
       Map(
         ExplodingKitten -> (`# Players` - 1),
         Defuse -> (`# Players` + 1),
-        Nope -> {if(`# Players`==minPlayers) 3 else 5},
-        Attack2X -> {if(`# Players`==minPlayers) 2 else 4},
-        Skip -> {if(`# Players`==minPlayers) 3 else 4},
-        Shuffle -> {if(`# Players`==minPlayers) 2 else 4},
-        SeeTheFuture3X -> {if(`# Players`==minPlayers) 2 else 5},
-        ZombieCat -> {if(`# Players`==minPlayers) 0 else 4},
+        Nope -> {if(`# Players`== minPlayers) 3 else 5},
+        Attack2X -> {if(`# Players`== minPlayers) 2 else 4},
+        Skip -> {if(`# Players`== minPlayers) 3 else 4},
+        Shuffle -> {if(`# Players`== minPlayers) 2 else 4},
+        SeeTheFuture3X -> {if(`# Players`== minPlayers) 2 else 5},
+        ZombieCat -> {if(`# Players`== minPlayers) 0 else 4},
         Tacocat -> 4,
         BeardCat -> 4,
         RainbowRalphingCat -> 4,
@@ -239,12 +237,12 @@ case object ExplodingKittensClassicMode extends Recipe {
     List(
       ExplodingKitten -> "# Players - 1",
       Defuse -> "# Players + 1",
-      Nope -> "3 Players: 3; 4-5 Players: 5",
-      Attack2X -> "3 Players: 2; 4-5 Players: 4",
-      Skip -> "3 Players: 3; 4-5 Players: 4",
-      Shuffle -> "3 Players: 2; 4-5 Players: 4",
-      SeeTheFuture3X -> "3 Players: 2; 4-5 Players: 5",
-      ZombieCat -> "3 Players: 0; 4-5 Players: 4",
+      Nope -> "3P: 3 4/5P: 5",
+      Attack2X -> "3P: 2 4/5P: 4",
+      Skip -> "3P: 3; 4/5P: 4",
+      Shuffle -> "3P: 2; 4/5P: 4",
+      SeeTheFuture3X -> "3P: 2; 4/5P: 5",
+      ZombieCat -> "3P: 0; 4/5P: 4",
       Tacocat -> "4",
       BeardCat -> "4",
       RainbowRalphingCat -> "4"
@@ -615,7 +613,7 @@ case object CardHoarders extends Recipe {
         Nope -> 4)
   override def getCardMap: List[(Card, String)] =
     List(
-      ExplodingKitten -> "2-3 Players: 1; 4 Players: 2",
+      ExplodingKitten -> "# Players / 2",
       Defuse -> "# Players",
       ImplodingKitten(false) -> "1",
       SeeTheFuture3X -> "4",
