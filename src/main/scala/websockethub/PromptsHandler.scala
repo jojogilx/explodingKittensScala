@@ -1,8 +1,8 @@
 package websockethub
 
-import card.{Card, CatCard, Defuse, ExplodingKitten, Nope}
+import card._
 import cats.effect.IO
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxParallelTraverse1}
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxParallelTraverse1, toTraverseOps}
 import players.Player.{Hand, PlayerID}
 import websockethub.Event._
 
@@ -12,43 +12,50 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
 
   def playCardsPrompt(player: PlayerID, playerHand: Hand): IO[Option[List[Int]]] = {
     for {
-      _      <- webSocketHub.sendToPlayer2(player)(CardsInHand(playerHand)) // switch to a PlayCardRequest
+      _ <- webSocketHub.sendToPlayer2(player)(Playing(true))
       answer <- webSocketHub.getGameInput(player)
-      _      <- IO.println(s"answer is $answer")
+      _ <- webSocketHub.sendToPlayer2(player)(Playing(false))
       result <- answer match {
-        case "n" => webSocketHub.broadcast(Information(s"$player skipped")) *> None.pure[IO]
+        case "n" => webSocketHub.broadcast(Information(s"$player passed")) *> None.pure[IO]
 
-        case list if !list.split(",").forall(_.toIntOption.isDefined) =>
-          webSocketHub.sendToPlayer2(player)(Error("Invalid input")) *> playCardsPrompt(
+        case string => string.split(",").toList.map(_.toIntOption).sequence match {
+          case Some(listIndices) => listIndices.map(i => playerHand.lift(i)).sequence match {
+            case Some(listCards) => listCards match {
+              case card::Nil => card match {
+                case ExplodingKitten | Defuse | Nope =>
+                webSocketHub.sendToPlayer2(player)(
+                Error("You can't play this card right now")
+                ) *> playCardsPrompt(player, playerHand)
+                case _ => Some(listIndices).pure[IO]
+
+              }
+
+              case h::tail if tail.length <= 2 =>
+                if(tail.forall(card => card == h || card == FeralCat)) Some(listIndices).pure[IO]
+                else webSocketHub.sendToPlayer2(player)(
+                  Error("Invalid play. Play 1 action card or 2/3 equal cards for combos")
+                ) *> playCardsPrompt(player, playerHand)
+
+              case _ =>  webSocketHub.sendToPlayer2(player)(
+                Error("Invalid play, play 1 action card. Or play 2/3 equal cards for combos")
+              ) *> playCardsPrompt(player, playerHand)
+            }
+            case None => webSocketHub.sendToPlayer2(player)(Error("Indices out of hand bounds")) *> playCardsPrompt(
+              player,
+              playerHand
+            )
+          }
+
+          case None => webSocketHub.sendToPlayer2(player)(Error("Couldn't parse indices to int")) *> playCardsPrompt(
             player,
             playerHand
           )
-//this makes possible that player plays 3 different cat cards (not supposed)
-        case ls
-            if ls
-              .split(",")
-              .forall(c =>
-                c.toIntOption.fold(false)(index =>
-                  playerHand.indices.contains(index) && (playerHand(index) match {
-                    case _: CatCard => true
-                    case _          => false
-                  })
-                )
-              ) =>
-          Some(ls.split(",").toList.map(c => c.toInt)).pure[IO]
+        }
 
-        case i if playerHand.indices contains i.toInt =>
-          playerHand(i.toInt) match {
-            case ExplodingKitten | Defuse | Nope =>
-              webSocketHub.sendToPlayer2(player)(
-                Information("You can't play this card right now")
-              ) *> playCardsPrompt(player, playerHand)
-            case _ => Some(List(i.toInt)).pure[IO]
-          }
 
         case _ =>
           webSocketHub.sendToPlayer2(player)(
-            Error("Invalid input, play 1 action card. Or play 2 or 3 indices of cat cards (e.g.: 4,5 or 1,2,3)")
+            Error("Invalid play, play 1 action card. Or play 2 or 3 equal cards for combos")
           ) *> playCardsPrompt(player, playerHand)
 
       }
