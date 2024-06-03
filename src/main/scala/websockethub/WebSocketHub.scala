@@ -13,7 +13,7 @@ import websockethub.Event._
 
 trait WebSocketHub {
   def connect(player: PlayerID, queue: Queue[IO, WebSocketFrame], onDisconnected: IO[Unit]): IO[Unit]
-  def sendToPlayer2(player: PlayerID)(event: Event): IO[Unit]
+  def sendToPlayer(player: PlayerID)(event: Event): IO[Unit]
   def broadcastExcept(playerID: PlayerID, message: Event): IO[Unit]
   def sendToGame(playerID: PlayerID)(message: String): IO[Unit]
   def getGameInput(playerID: PlayerID): IO[String]
@@ -27,21 +27,25 @@ trait WebSocketHub {
 object WebSocketHub {
   def of: IO[WebSocketHub] = for {
     stateRef         <- Ref.of[IO, Map[PlayerID, (Queue[IO, WebSocketFrame], IO[Unit])]](Map.empty)
-    systemQueue      <- Queue.unbounded[IO, (PlayerID, String)]
+    systemQueuesMap <- Ref.of[IO, Map[PlayerID, Queue[IO, String]]](Map.empty)
   } yield new WebSocketHub {
 
     override def connect(
         player: PlayerID,
         queue: Queue[IO, WebSocketFrame],
         onDisconnected: IO[Unit]
-    ): IO[Unit] = {
-      stateRef.update(map => if(!map.contains(player)) map + (player -> (queue, onDisconnected)) else map) *> IO.println(s"$player connected")
-    }
+    ): IO[Unit] =
+        for {
+          _ <-   stateRef.update(map => if(!map.contains(player)) map + (player -> (queue, onDisconnected)) else map)
+          q <- Queue.unbounded[IO, String]
+          _ <- systemQueuesMap.update(map => map + (player -> q))
+          _ <- IO.println(s"$player connected")
+        } yield ()
 
 
-    override def sendToPlayer2(playerID: PlayerID)(event: Event): IO[Unit] = {
+    override def sendToPlayer(playerID: PlayerID)(event: Event): IO[Unit] = {
 
-      IO.println(s"PLAYER $playerID -> event: ${event.getClass}: $event") *> stateRef.get.flatMap { messageMap =>
+      stateRef.get.flatMap { messageMap =>
         messageMap.get(playerID) match {
           case Some((queue, _)) =>
             queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
@@ -55,7 +59,7 @@ object WebSocketHub {
 
 
     override def broadcast(event: Event): IO[Unit] = {
-      IO.println(s"event: ${event.getClass}: $event") *> stateRef.get.flatMap(map =>
+      stateRef.get.flatMap(map =>
         map.values.toList.traverse { case (queue, _) =>
           queue.offer(WebSocketFrame.Text(event.asJson.noSpaces))
         }.void
@@ -76,9 +80,11 @@ object WebSocketHub {
       )
     }
 
-    override def sendToGame(playerID: PlayerID)(message: String): IO[Unit] = {
-      systemQueue.offer((playerID, message))
-    }
+    override def sendToGame(playerID: PlayerID)(message: String): IO[Unit] =
+      for {
+        queue <- systemQueuesMap.get.map(_.get(playerID))
+        _ <- queue.fold(IO.unit)(q => q.offer(message))
+      } yield ()
 
     override def disconnectPlayer(playerID: PlayerID): IO[Unit] = {
       IO.println(s"$playerID disconnected from socket") *> stateRef.get.flatMap(_.get(playerID).fold(IO.unit) {
@@ -88,12 +94,13 @@ object WebSocketHub {
     }
 
     override def getGameInput(playerID: PlayerID): IO[String] =
-      Stream
-        .repeatEval(systemQueue.take)
-        .collectFirst({ case (id, message) if id == playerID => message })
-        .map(_.replaceAll("\n", "").trim.toLowerCase)
-        .compile
-        .lastOrError
+        for {
+          queue <- systemQueuesMap.get.map(_(playerID))
+          msg <- Stream
+                .repeatEval(queue.take).map(_.replaceAll("\n", "").trim.toLowerCase).collectFirst({ case message if message.nonEmpty => message }).compile.lastOrError
+
+        } yield msg
+
 
 
     override def endGame(): IO[Unit] =

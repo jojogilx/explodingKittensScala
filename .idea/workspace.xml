@@ -4,13 +4,12 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="fixed imploding kitten being dealt">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="improved handle cards played to include more than one, hidden card on bury">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/card/Recipes.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/Event.scala" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/WebSocketHub.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -145,30 +144,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00055" summary="fixed nope card">
-      <option name="closed" value="true" />
-      <created>1711039177168</created>
-      <option name="number" value="00055" />
-      <option name="presentableId" value="LOCAL-00055" />
-      <option name="project" value="LOCAL" />
-      <updated>1711039177168</updated>
-    </task>
-    <task id="LOCAL-00056" summary="fixed stealing cards">
-      <option name="closed" value="true" />
-      <created>1711102904146</created>
-      <option name="number" value="00056" />
-      <option name="presentableId" value="LOCAL-00056" />
-      <option name="project" value="LOCAL" />
-      <updated>1711102904146</updated>
-    </task>
-    <task id="LOCAL-00057" summary="closed players on game end.&#10;4th milestone completed">
-      <option name="closed" value="true" />
-      <created>1711108081611</created>
-      <option name="number" value="00057" />
-      <option name="presentableId" value="LOCAL-00057" />
-      <option name="project" value="LOCAL" />
-      <updated>1711108081611</updated>
     </task>
     <task id="LOCAL-00058" summary="removed extra bombs">
       <option name="closed" value="true" />
@@ -538,7 +513,31 @@
       <option name="project" value="LOCAL" />
       <updated>1716390890821</updated>
     </task>
-    <option name="localTasksCounter" value="104" />
+    <task id="LOCAL-00104" summary="recipes description better">
+      <option name="closed" value="true" />
+      <created>1717142925669</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1717142925669</updated>
+    </task>
+    <task id="LOCAL-00105" summary="play cards prompt including cat cards">
+      <option name="closed" value="true" />
+      <created>1717142953473</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1717142953473</updated>
+    </task>
+    <task id="LOCAL-00106" summary="improved handle cards played to include more than one, hidden card on bury">
+      <option name="closed" value="true" />
+      <created>1717143074632</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1717143074632</updated>
+    </task>
+    <option name="localTasksCounter" value="107" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -554,9 +553,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="FE" />
-    <MESSAGE value="play card is ok" />
-    <MESSAGE value="Restructure to delete room" />
     <MESSAGE value="added some documentation.&#10;cleaned up some code.&#10;potential fix for start" />
     <MESSAGE value="deleted room. create, recipes and join working. reconnect needs change" />
     <MESSAGE value="imploding kitten" />
@@ -579,6 +575,9 @@
     <MESSAGE value="garbage collection implemented. needs testing" />
     <MESSAGE value="changed alter the future" />
     <MESSAGE value="fixed imploding kitten being dealt" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed imploding kitten being dealt" />
+    <MESSAGE value="recipes description better" />
+    <MESSAGE value="play cards prompt including cat cards" />
+    <MESSAGE value="improved handle cards played to include more than one, hidden card on bury" />
+    <option name="LAST_COMMIT_MESSAGE" value="improved handle cards played to include more than one, hidden card on bury" />
   </component>
 </project>
