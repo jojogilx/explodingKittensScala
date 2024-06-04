@@ -419,12 +419,11 @@ case class Game(
   /** Handles the card played, performing the necessary operations
     * @param player
     *   current player
-    * @param card
-    *   card played
+    * @param cards
+    *   cards played
     * @return
     *   if the played card caused the player to skip drawing a card
     */
-  // TODO restructure to include cat cards
   private def handleCardPlayed(player: PlayerID, cards: List[Card]): IO[Unit] =
     for {
       playerHands <- gameStateRef.get
@@ -631,7 +630,7 @@ case class Game(
       currentPlayerMarkedBy <- gameStateRef.modify(state => {
         val result = state.marking.zipWithIndex.find { case ((_, from), _) => from == playerID }
 
-        val markings = result.fold(state.marking)({case ((t,f), i) => state.marking.zipWithIndex.filter { case ((_,_),`i`) => false}.map(_._1)})
+        val markings = result.fold(state.marking)({case ((_,_), i) => state.marking.zipWithIndex.filter { case ((_,_),`i`) => false}.map(_._1)})
 
 
         (state.copy(marking = markings), result.map(_._1).map(_._1))
@@ -668,7 +667,7 @@ case class Game(
           for {
             _ <- webSocketHub.broadcast(Information(s"$playerID drew a faced-down ${card.title}"))
             _ <- IO.sleep(1.seconds)
-            _ <- buryCard(playerID, ImplodingKitten(true), reveal =true)
+            _ <- buryCard(playerID, ImplodingKitten(true), reveal = true)
           } yield ()
 
         case card => addCardToHand(playerToDraw, card)
@@ -681,7 +680,7 @@ case class Game(
 
   private def addCardToHand(player: PlayerID, card: Card): IO[Unit] =
     for {
-      hand <- gameStateRef.modify(state => {
+      _ <- gameStateRef.modify(state => {
 
         val (hand, count) = state.playersHands(player)
         val newHand       = hand :+ card
@@ -699,7 +698,7 @@ case class Game(
   // understand barking kitten
   private def discard(card: Card): IO[Unit] =
     for {
-      state <- gameStateRef.updateAndGet(state => state.copy(discardDeck = state.discardDeck.prepend(card)))
+      _ <- gameStateRef.updateAndGet(state => state.copy(discardDeck = state.discardDeck.prepend(card)))
 
       _ <- webSocketHub.broadcast(PlayCard(card, none))
 
@@ -743,8 +742,8 @@ case class Game(
 
   /** Plays the card at given index, removing it from the player's hand, discarding it and returning the card
     *
-    * @param index
-    *   the index of the card to play
+    * @param indices
+    *   the indices of the cards to play
     * @return
     *   Card played
     */
