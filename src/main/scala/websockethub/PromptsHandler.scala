@@ -1,8 +1,8 @@
 package websockethub
 
 import card._
-import cats.effect.IO
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxParallelTraverse1, toTraverseOps}
+import cats.effect.{Deferred, IO}
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxParallelTraverse1, toFoldableOps, toTraverseOps}
 import players.Player.{Hand, PlayerID}
 import websockethub.Event._
 
@@ -150,5 +150,30 @@ case class PromptsHandler(webSocketHub: WebSocketHub) {
       _      <- webSocketHub.sendToPlayer(player)(Information("end2"))
       _ <- IO.println("end")
     } yield result
+
+  /**
+   * asks a player if nope action
+   * @param playerID - player asked
+   * @param hand - their hand
+   * @param deferred - deferred controlling the other answers
+   * @return
+   */
+  def getNopeFrom(playerID: PlayerID, hand: Hand, deferred: Deferred[IO, (PlayerID, Int)]): IO[Unit] = {
+    IO.race(deferred.get,
+      for {
+        nope <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
+        _ <- nope match {
+          case Some(value) =>
+            hand.get(value) match {
+              case Some(card) if card == Nope => deferred.complete((playerID, value))
+              case _ =>
+                webSocketHub.sendToPlayer(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
+            }
+          case None =>
+            webSocketHub.sendToPlayer(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
+        }
+      } yield ())
+  }.void
+
 
 }

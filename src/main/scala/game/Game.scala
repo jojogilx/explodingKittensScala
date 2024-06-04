@@ -426,12 +426,7 @@ case class Game(
     */
   private def handleCardPlayed(player: PlayerID, cards: List[Card]): IO[Unit] =
     for {
-      playerHands <- gameStateRef.get
-        .map { state =>
-          state.playersHands.map { case (id, (hand, _)) => id -> hand }
-        }
-        .map(_ - player)
-      res <- if (cards.contains(BarkingKitten)) false.pure[IO] else getNopes(playerHands)
+      res <- if (cards.contains(BarkingKitten)) false.pure[IO] else nopeFlow()
       _ <- cards match {
         case ls if ls.length == 3 =>
           for {
@@ -887,56 +882,57 @@ case class Game(
         )
       }
 
-  /** ask players if they want to nope this action, returns true on the first player that answers yes or false if runs
+  /**
+   * get number of nopes played over another
+   * @return
+   */
+  private def askNope(): IO[Int] = getNopes.flatMap(noped =>
+    for {
+      res <- if (noped) askNope() |+| IO(1) else IO(0)
+    } yield res)
+
+
+  /**
+   * Handles the nope flow, if nopes are even, action is yupped, otherwise noped
+   * @return
+   */
+  private def nopeFlow(): IO[Boolean] = {
+
+    for {
+      numberOfNopes <- askNope()
+      isActionNoped = numberOfNopes % 2 == 1
+    } yield isActionNoped
+
+
+  }
+
+  /** ask all players if they want to nope this action, returns true on the first player that answers yes or false if runs
     * out of time
-    * @param playerHands
-    *   players hands
     * @return
     *   true if anyone noped
     */
-  private def getNopes(
-      playerHands: Map[PlayerID, Hand]
-  ): IO[Boolean] = {
+  private def getNopes: IO[Boolean] =
     for {
-      deferred <- Deferred[IO, (PlayerID, Int)]
-
+      _ <- webSocketHub.broadcast(GetNopes(Nil))
       res <- IO
-        .race(
-          IO.sleep(
-            100.millis
-          ) *> webSocketHub.broadcast(Timer(2)) *> prompter.broadCastCountDown(2) *> false.pure[IO],
+        .race(IO.sleep(100.millis) *> webSocketHub.broadcast(Timer(4)) *> prompter.broadCastCountDown(4) *>false.pure[IO],
           for {
-            _ <- playerHands.toList.parTraverse { case (pID, hand) =>
-              getNopeFrom(pID, hand, deferred)
-            }
-            res <- deferred.get
-            (player, index) = res
-            res <- playCards(index::Nil, player) *> true.pure[IO]
+            deferred <- Deferred[IO, (PlayerID, Int)]
+            playerHands <- gameStateRef.get.map(_.playersHands.map { case (id, (hand, _)) => id -> hand })
+            _ <- playerHands.toList.parTraverse { case (pID, hand) => prompter.getNopeFrom(pID, hand, deferred)}
+            result <- deferred.get
+            (player, index) = result
+            res <- playCards(index :: Nil, player) *> IO.pure(true)
           } yield res
         )
-        .flatTap(_ => webSocketHub.broadcast(EndNopes()))
         .flatMap {
-          case Left(_)      => false.pure[IO]
-          case Right(value) => value.pure[IO]
+          case Left(_) => IO.pure(false)
+          case Right(value) => IO.pure(value)
         }
-      _ <- IO.println(s"res is $res")
+    _ <- webSocketHub.broadcast(EndNopes())
     } yield res
-  }
-  private def getNopeFrom(playerID: PlayerID, hand: Hand, deferred: Deferred[IO, (PlayerID, Int)]): IO[Unit] =
-    for {
-      _    <- webSocketHub.sendToPlayer(playerID)(GetNopes(Nil))
-      nope <- webSocketHub.getGameInput(playerID).map(_.toIntOption)
-      _ <- nope match {
-        case Some(value) =>
-          hand.get(value) match {
-            case Some(card) if card == Nope => deferred.complete((playerID, value))
-            case _ =>
-              webSocketHub.sendToPlayer(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
-          }
-        case None =>
-          webSocketHub.sendToPlayer(playerID)(Error("Invalid input")) *> getNopeFrom(playerID, hand, deferred)
-      }
-    } yield ()
+
+
 
 }
 

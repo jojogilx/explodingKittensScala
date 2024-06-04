@@ -4,9 +4,11 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="timed imploding kitten bury. changed websockethub system to a map of queues">
+    <list default="true" id="8ec383f1-00d1-45e8-87cb-d7655acadb18" name="Changes" comment="before restructuring nopes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/game/Game.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Game.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/game/Lobby.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/websockethub/PromptsHandler.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -141,14 +143,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1709717593396</updated>
-    </task>
-    <task id="LOCAL-00059" summary="fix bug where stealing one card would remove all cards of that type">
-      <option name="closed" value="true" />
-      <created>1711114914921</created>
-      <option name="number" value="00059" />
-      <option name="presentableId" value="LOCAL-00059" />
-      <option name="project" value="LOCAL" />
-      <updated>1711114914921</updated>
     </task>
     <task id="LOCAL-00060" summary="putting bombs back on deck after defusing">
       <option name="closed" value="true" />
@@ -534,7 +528,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717421512541</updated>
     </task>
-    <option name="localTasksCounter" value="108" />
+    <task id="LOCAL-00108" summary="before restructuring nopes">
+      <option name="closed" value="true" />
+      <created>1717496802372</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1717496802372</updated>
+    </task>
+    <option name="localTasksCounter" value="109" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -550,7 +552,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
-    <MESSAGE value="deleted room. create, recipes and join working. reconnect needs change" />
     <MESSAGE value="imploding kitten" />
     <MESSAGE value="removed some warnings" />
     <MESSAGE value="play card working, needs debug" />
@@ -575,6 +576,7 @@
     <MESSAGE value="play cards prompt including cat cards" />
     <MESSAGE value="improved handle cards played to include more than one, hidden card on bury" />
     <MESSAGE value="timed imploding kitten bury. changed websockethub system to a map of queues" />
-    <option name="LAST_COMMIT_MESSAGE" value="timed imploding kitten bury. changed websockethub system to a map of queues" />
+    <MESSAGE value="before restructuring nopes" />
+    <option name="LAST_COMMIT_MESSAGE" value="before restructuring nopes" />
   </component>
 </project>
